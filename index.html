@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#5a6fd8" />
-<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="style.css?v=3" />
 </head>
 <body>
   <header>
@@ -40,6 +40,7 @@
   <main>
     <div id="board-wrap">
       <div id="board" role="grid" aria-label="Letter grid"></div>
+      <div id="badge-layer" aria-hidden="true"></div>
     </div>
     <p id="message" role="status" aria-live="polite"></p>
     <div id="word-list" class="word-list" role="list" aria-label="Words to find"></div>
@@ -83,6 +84,6 @@
   </footer>
 
   <script src="i18n.js"></script>
-  <script src="script.js"></script>
+  <script src="script.js?v=3"></script>
 </body>
 </html>

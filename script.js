@@ -47,7 +47,9 @@
   let timerInterval = null;
   let pendingConfirmAction = null;
 
+  const boardWrapEl = document.getElementById("board-wrap");
   const boardEl = document.getElementById("board");
+  const badgeLayerEl = document.getElementById("badge-layer");
   const messageEl = document.getElementById("message");
   const wordListEl = document.getElementById("word-list");
   const foundBadgeEl = document.getElementById("found-badge");
@@ -386,7 +388,9 @@
 
   function renderBoard() {
     boardEl.innerHTML = "";
-    boardEl.style.setProperty("--cols", gridSize);
+    // Set on the shared wrapper (not #board) so #badge-layer — a sibling, not a descendant of
+    // #board — inherits the same --cols and its grid tracks line up with #board's exactly.
+    boardWrapEl.style.setProperty("--cols", gridSize);
     cellEls = Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
     for (let r = 0; r < gridSize; r++) {
       for (let c = 0; c < gridSize; c++) {
@@ -413,21 +417,21 @@
   }
 
   function renderSelection() {
-    selectedEls.forEach((el) => {
-      el.classList.remove("selected");
-      const badge = el.querySelector(".badge");
-      if (badge) badge.remove();
-    });
+    selectedEls.forEach((el) => el.classList.remove("selected"));
     selectedEls = [];
+    badgeLayerEl.innerHTML = "";
     selection.forEach(([r, c], i) => {
       const el = cellEls[r][c];
       if (!el) return;
       el.classList.add("selected");
+      selectedEls.push(el);
+
       const badge = document.createElement("span");
       badge.className = "badge";
       badge.textContent = String(i + 1);
-      el.appendChild(badge);
-      selectedEls.push(el);
+      badge.style.gridRow = String(r + 1);
+      badge.style.gridColumn = String(c + 1);
+      badgeLayerEl.appendChild(badge);
     });
   }
 
