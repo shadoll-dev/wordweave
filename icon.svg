@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7b8cf0"/>
+      <stop offset="55%" stop-color="#5a6fd8"/>
+      <stop offset="100%" stop-color="#3d4aa8"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.32"/>
+      <stop offset="45%" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="46%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="30%" cy="22%" r="75%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+
+  <g fill="#ffffff" fill-opacity="0.22">
+    <rect x="100" y="100" width="188" height="188" rx="32"/>
+    <rect x="312" y="100" width="188" height="188" rx="32"/>
+    <rect x="524" y="100" width="188" height="188" rx="32"/>
+    <rect x="736" y="100" width="188" height="188" rx="32"/>
+    <rect x="100" y="312" width="188" height="188" rx="32"/>
+    <rect x="736" y="312" width="188" height="188" rx="32"/>
+    <rect x="100" y="524" width="188" height="188" rx="32"/>
+    <rect x="736" y="524" width="188" height="188" rx="32"/>
+    <rect x="100" y="736" width="188" height="188" rx="32"/>
+    <rect x="312" y="736" width="188" height="188" rx="32"/>
+    <rect x="524" y="736" width="188" height="188" rx="32"/>
+    <rect x="736" y="736" width="188" height="188" rx="32"/>
+  </g>
+
+  <g fill="#ffffff">
+    <rect x="312" y="312" width="188" height="188" rx="32"/>
+    <rect x="524" y="312" width="188" height="188" rx="32"/>
+    <rect x="312" y="524" width="188" height="188" rx="32"/>
+    <rect x="524" y="524" width="188" height="188" rx="32"/>
+  </g>
+
+  <g stroke="#ffd166" stroke-width="23" stroke-linecap="round" fill="none">
+    <line x1="406" y1="406" x2="618" y2="618"/>
+  </g>
+  <g fill="#ffd166">
+    <circle cx="406" cy="406" r="64"/>
+    <circle cx="618" cy="618" r="64"/>
+  </g>
+  <g fill="#3d4aa8" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="94" text-anchor="middle">
+    <text x="406" y="439">1</text>
+    <text x="618" y="651">2</text>
+  </g>
+
+  <rect width="1024" height="512" fill="url(#sheen)"/>
+</svg>

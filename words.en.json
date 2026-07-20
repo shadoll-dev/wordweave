@@ -1,0 +1,22 @@
+{
+  "categories": {
+    "animals": {
+      "words": ["cat", "owl", "fox", "bee", "ant", "tiger", "zebra", "otter", "camel", "moose", "koala", "gecko", "panda", "shark", "eagle", "whale", "rabbit", "dolphin", "giraffe", "elephant"]
+    },
+    "countries": {
+      "words": ["chad", "cuba", "peru", "mali", "togo", "kenya", "japan", "egypt", "chile", "spain", "ghana", "india", "nepal", "qatar", "canada", "mexico", "poland", "norway", "belgium", "portugal"]
+    },
+    "food": {
+      "words": ["tea", "pie", "jam", "nut", "egg", "rice", "fish", "cake", "soup", "taco", "pizza", "sushi", "bacon", "mango", "pasta", "honey", "bread", "cheese", "cookie", "chocolate"]
+    },
+    "colors": {
+      "words": ["red", "tan", "jade", "gold", "rose", "navy", "gray", "teal", "cyan", "plum", "amber", "coral", "olive", "khaki", "ivory", "violet", "indigo", "maroon", "crimson", "turquoise"]
+    },
+    "sports": {
+      "words": ["golf", "polo", "judo", "darts", "rugby", "boxing", "tennis", "hockey", "karate", "diving", "rowing", "curling", "cycling", "archery", "bowling", "swimming", "baseball", "badminton", "wrestling", "basketball"]
+    },
+    "space": {
+      "words": ["sun", "moon", "star", "comet", "orbit", "venus", "earth", "pulsar", "quasar", "meteor", "galaxy", "planet", "rocket", "saturn", "cosmos", "nebula", "mercury", "jupiter", "asteroid", "telescope"]
+    }
+  }
+}

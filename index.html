@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Wordweave</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#5a6fd8" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Wordweave <span id="level-badge" class="level-badge"></span> <span id="found-badge" class="found-badge"></span></h1>
+    <div id="timer" class="timer" aria-live="off">0:00</div>
+    <div class="header-actions">
+      <button id="help-btn" class="icon-btn" data-i18n-title="helpBtn" aria-label="How to play" title="How to play">?</button>
+      <button id="new-game-btn" class="header-btn" data-i18n="newGameBtn" data-i18n-title="newGameBtn" title="New game">New Game</button>
+      <div class="menu-wrap">
+        <button id="menu-btn" class="icon-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu" title="Menu">⋮</button>
+        <div id="menu-panel" class="menu-panel hidden">
+          <button id="stats-btn" class="menu-item" data-i18n="statsBtn">Stats</button>
+          <div class="menu-separator"></div>
+          <span class="menu-label" data-i18n="categoryLabel">Category</span>
+          <div id="category-options" class="lang-options" role="radiogroup" aria-label="Category"></div>
+          <div class="menu-separator"></div>
+          <span class="menu-label" data-i18n="difficultyLabel">Difficulty</span>
+          <div id="level-options" class="lang-options" role="radiogroup" aria-label="Difficulty"></div>
+          <div class="menu-separator"></div>
+          <span class="menu-label" data-i18n="languageLabel">Language</span>
+          <div id="lang-options" class="lang-options" role="radiogroup" aria-label="Language"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="board-wrap">
+      <div id="board" role="grid" aria-label="Letter grid"></div>
+    </div>
+    <p id="message" role="status" aria-live="polite"></p>
+    <div id="word-list" class="word-list" role="list" aria-label="Words to find"></div>
+  </main>
+
+  <div id="help-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 data-i18n="helpTitle">How to Play</h2>
+      <p data-i18n="helpIntro">Find every listed word hidden in the grid. Words can run in any of the 8 directions (horizontal, vertical, diagonal — forwards or backwards), but always in a straight line.</p>
+      <p data-i18n="helpRule1">Tap a letter to start, then tap the next letter in line to extend your word — each tap adds a numbered badge showing the order you picked it in.</p>
+      <p data-i18n="helpRule2">Tap the last letter you picked again to undo it. Tap an unrelated letter to start a new word from there instead.</p>
+      <p data-i18n="helpRule3">Two words can cross through the same letter. As soon as your selection spells a listed word, it's marked found automatically.</p>
+      <p><span data-i18n="helpMenuPre">Use the</span> <span class="menu-key">⋮</span> <span data-i18n="helpMenuPost">menu to change the word category, difficulty (grid size), and language at any time.</span></p>
+      <button id="close-help-btn" class="btn-primary" data-i18n="close">Close</button>
+    </div>
+  </div>
+
+  <div id="stats-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 data-i18n="statsTitle">Statistics</h2>
+      <div id="stats-summary" class="stats-summary"></div>
+      <h3 data-i18n="bestTimes">Best Times</h3>
+      <div id="stats-best-times" class="stats-distribution"></div>
+      <button id="close-stats-btn" class="btn-primary" data-i18n="close">Close</button>
+    </div>
+  </div>
+
+  <div id="confirm-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 data-i18n="newGameTitle">New Game</h2>
+      <p id="confirm-message" data-i18n="confirmNewGame">Start a new puzzle? Current progress will be lost.</p>
+      <div class="modal-actions">
+        <button id="confirm-cancel-btn" class="btn-secondary" data-i18n="cancel">Cancel</button>
+        <button id="confirm-ok-btn" class="btn-primary" data-i18n="startNewGame">Start New Game</button>
+      </div>
+    </div>
+  </div>
+
+  <footer id="site-footer">
+    &copy; <a href="https://shadoll.dev" target="_blank" rel="noopener">shadoll</a>.&emsp;Made by <a href="https://m5y.p9o.uk" target="_blank" rel="noopener">Mykolay</a>, assisted by AI
+  </footer>
+
+  <script src="i18n.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
