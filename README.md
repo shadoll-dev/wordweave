@@ -11,9 +11,9 @@ A word-search puzzle game — single-page, no build step, no dependencies.
 - Two words can cross through the same shared letter
 - A word is marked found automatically the instant your selection spells it — no submit button
 - **English and Ukrainian**, auto-detected from the browser's language and switchable from the "⋮" menu
-- **Six word categories** — Animals, Countries, Food, Colors, Sports, Space — selectable from the "⋮" menu
-- **Difficulty filter** — Easy (9×9, 8 words) / Moderate (11×11, 12 words) / Hard (13×13, 16 words), shown as a colored badge next to the title; also in the "⋮" menu
-- Each category mixes short (3–4 letter) and long (7+ letter) words, and words are placed to cross through shared letters wherever possible — grids are dense, not a handful of same-length words lost in empty space
+- **Eleven word categories** — Animals, Countries, Food, Colors, Sports, Space, Weather, Jobs, Vehicles, Clothing, Music — selectable from the "⋮" menu. Each category has several curated word-sets (e.g. Animals splits into Farm & Pets / Wild & Exotic / Sea, Air & Reptiles); a puzzle draws from one randomly-picked set so a single game stays thematically tight
+- **Difficulty filter** — Easy / Moderate / Hard, shown as a colored badge next to the title; also in the "⋮" menu. Grid size (roughly 7×7 up to 14×14, depending on difficulty) is sized to the chosen word-set so puzzles stay dense rather than sparse
+- Each set mixes short (3–4 letter) and long (7+ letter) words, and words are placed to cross through shared letters wherever possible — grids are dense, not a handful of same-length words lost in empty space
 - A timer tracks how long the current puzzle has taken
 - **Session statistics** — puzzles played, puzzles completed, total words found, and best completion time per difficulty — tracked separately per language, all in `localStorage`
 - Progress (including the in-progress grid and timer) persists across page reloads, per language

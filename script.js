@@ -4,15 +4,21 @@
   const CATEGORY_KEY = "wordweave-category";
   const LANGUAGE_NAMES = { en: "English", uk: "Українська" };
   const SUPPORTED_LANGS = Object.keys(LANGUAGE_NAMES);
-  const CATEGORIES = ["animals", "countries", "food", "colors", "sports", "space"];
+  const CATEGORIES = [
+    "animals", "countries", "food", "colors", "sports", "space",
+    "weather", "jobs", "vehicles", "clothing", "music",
+  ];
   const LEVELS = ["easy", "moderate", "hard"];
-  // Grid size stays small relative to word count so the puzzle is actually dense (crossings,
-  // little empty space) rather than a handful of same-length words lost in a huge empty grid.
+  // Grid size is derived per puzzle from how many letters its chosen word-set actually contributes
+  // (see buildPuzzle's TARGET_FILL), then clamped into this level's [minSize, maxSize] band — that
+  // keeps density roughly constant (and the puzzle from going huge-and-sparse) even though word-sets
+  // vary in size. wordCount is a cap, not a guarantee: a smaller set just yields fewer words.
   const LEVEL_CONFIG = {
-    easy: { size: 9, wordCount: 8 },
-    moderate: { size: 11, wordCount: 12 },
-    hard: { size: 13, wordCount: 16 },
+    easy: { minSize: 7, maxSize: 9, wordCount: 8 },
+    moderate: { minSize: 9, maxSize: 12, wordCount: 12 },
+    hard: { minSize: 11, maxSize: 14, wordCount: 16 },
   };
+  const TARGET_FILL = 0.5; // aim for ~50% of cells covered by words before overlap tightens it further
   // 8 straight-line directions; word letters always occupy adjacent cells along one of these.
   const DIRECTIONS = [
     [0, 1], [0, -1], [1, 0], [-1, 0],
@@ -187,15 +193,25 @@
     return null; // Never found a spot (rare) — the word is dropped from this puzzle, see AGENTS.md.
   }
 
+  // Each category holds several curated word-sets; picking one whole set per puzzle (rather than
+  // sampling across the category's full pool) keeps a single game thematically tighter.
+  function pickWordSet(category) {
+    const sets = (WORDS[category] && WORDS[category].sets) || [];
+    if (sets.length === 0) return [];
+    return sets[randomInt(sets.length)].words || [];
+  }
+
   function buildPuzzle(category, level) {
-    const size = LEVEL_CONFIG[level].size;
-    const wordCount = LEVEL_CONFIG[level].wordCount;
-    const pool = ((WORDS[category] && WORDS[category].words) || []).filter(
-      (w) => Array.from(w).length <= size
-    );
+    const { minSize, maxSize, wordCount } = LEVEL_CONFIG[level];
+    const pool = pickWordSet(category).filter((w) => Array.from(w).length <= maxSize);
     const chosen = shuffle(pool).slice(0, wordCount);
+
+    const totalLetters = chosen.reduce((sum, w) => sum + Array.from(w).length, 0);
+    const size = Math.max(minSize, Math.min(maxSize, Math.ceil(Math.sqrt(totalLetters / TARGET_FILL))));
+    // A word longer than this puzzle's actual (possibly smaller-than-maxSize) grid can't be placed.
+    const fittable = chosen.filter((w) => Array.from(w).length <= size);
     // Longer words are harder to fit; place them first for better packing.
-    const ordered = [...chosen].sort((a, b) => Array.from(b).length - Array.from(a).length);
+    const ordered = [...fittable].sort((a, b) => Array.from(b).length - Array.from(a).length);
 
     const g = Array.from({ length: size }, () => Array(size).fill(null));
     const placed = [];

@@ -1,22 +1,76 @@
 {
   "categories": {
     "animals": {
-      "words": ["cat", "owl", "fox", "bee", "ant", "tiger", "zebra", "otter", "camel", "moose", "koala", "gecko", "panda", "shark", "eagle", "whale", "rabbit", "dolphin", "giraffe", "elephant"]
+      "sets": [
+        { "words": ["cat", "pig", "cow", "hen", "horse", "sheep", "rabbit", "mouse"] },
+        { "words": ["fox", "wolf", "lion", "bear", "tiger", "zebra", "koala", "panda", "monkey", "giraffe", "elephant", "kangaroo", "camel", "moose"] },
+        { "words": ["owl", "bee", "ant", "bat", "seal", "otter", "gecko", "shark", "eagle", "whale", "snake", "spider", "dolphin", "penguin", "crocodile"] }
+      ]
     },
     "countries": {
-      "words": ["chad", "cuba", "peru", "mali", "togo", "kenya", "japan", "egypt", "chile", "spain", "ghana", "india", "nepal", "qatar", "canada", "mexico", "poland", "norway", "belgium", "portugal"]
+      "sets": [
+        { "words": ["chad", "mali", "togo", "iran", "iraq", "oman", "kenya", "egypt", "ghana", "qatar"] },
+        { "words": ["cuba", "peru", "chile", "fiji", "canada", "mexico", "colombia", "argentina", "australia"] },
+        { "words": ["laos", "japan", "spain", "india", "nepal", "italy", "poland", "norway", "france", "sweden", "turkey", "belgium", "ukraine", "germany", "portugal", "thailand", "switzerland"] }
+      ]
     },
     "food": {
-      "words": ["tea", "pie", "jam", "nut", "egg", "rice", "fish", "cake", "soup", "taco", "pizza", "sushi", "bacon", "mango", "pasta", "honey", "bread", "cheese", "cookie", "chocolate"]
+      "sets": [
+        { "words": ["pea", "nut", "corn", "lime", "plum", "salad", "mango", "avocado", "broccoli", "pineapple"] },
+        { "words": ["ham", "egg", "beef", "rice", "fish", "soup", "taco", "pizza", "sushi", "bacon", "pasta", "bread", "waffle", "noodle", "burger", "cheese", "pancake", "sandwich"] },
+        { "words": ["tea", "pie", "jam", "cake", "syrup", "honey", "yogurt", "cookie", "chocolate"] }
+      ]
     },
     "colors": {
-      "words": ["red", "tan", "jade", "gold", "rose", "navy", "gray", "teal", "cyan", "plum", "amber", "coral", "olive", "khaki", "ivory", "violet", "indigo", "maroon", "crimson", "turquoise"]
+      "sets": [
+        { "words": ["red", "rust", "gold", "rose", "amber", "coral", "maroon", "crimson", "bronze"] },
+        { "words": ["navy", "teal", "cyan", "indigo", "violet", "magenta", "lavender", "turquoise", "jade"] },
+        { "words": ["tan", "jet", "wine", "mint", "gray", "plum", "lilac", "beige", "olive", "khaki", "ivory", "silver", "emerald"] }
+      ]
     },
     "sports": {
-      "words": ["golf", "polo", "judo", "darts", "rugby", "boxing", "tennis", "hockey", "karate", "diving", "rowing", "curling", "cycling", "archery", "bowling", "swimming", "baseball", "badminton", "wrestling", "basketball"]
+      "sets": [
+        { "words": ["golf", "polo", "rugby", "tennis", "hockey", "cricket", "softball", "football", "handball", "baseball", "basketball", "volleyball", "badminton"] },
+        { "words": ["judo", "darts", "boxing", "karate", "fencing", "archery", "bowling", "wrestling", "gymnastics", "run"] },
+        { "words": ["ski", "surf", "skate", "diving", "rowing", "sailing", "curling", "cycling", "swimming", "triathlon"] }
+      ]
     },
     "space": {
-      "words": ["sun", "moon", "star", "comet", "orbit", "venus", "earth", "pulsar", "quasar", "meteor", "galaxy", "planet", "rocket", "saturn", "cosmos", "nebula", "mercury", "jupiter", "asteroid", "telescope"]
+      "sets": [
+        { "words": ["sun", "moon", "mars", "star", "venus", "earth", "saturn", "mercury", "jupiter", "asteroid", "comet", "meteor"] },
+        { "words": ["void", "gravity", "eclipse", "pulsar", "quasar", "galaxy", "cosmos", "nebula", "universe", "supernova", "crater"] },
+        { "words": ["orbit", "planet", "rocket", "telescope", "satellite", "astronaut", "spacecraft"] }
+      ]
+    },
+    "weather": {
+      "sets": [
+        { "words": ["fog", "sun", "rain", "snow", "wind", "cloud", "breeze", "frost", "humid"] },
+        { "words": ["hail", "storm", "monsoon", "drizzle", "tornado", "thunder", "blizzard", "hurricane", "lightning", "rainbow"] }
+      ]
+    },
+    "jobs": {
+      "sets": [
+        { "words": ["cook", "chef", "nurse", "farmer", "teacher", "builder", "plumber", "painter", "dentist", "doctor"] },
+        { "words": ["pilot", "actor", "judge", "coach", "dancer", "lawyer", "mechanic", "engineer", "musician", "designer", "scientist", "firefighter"] }
+      ]
+    },
+    "vehicles": {
+      "sets": [
+        { "words": ["car", "bus", "van", "bike", "taxi", "tram", "train", "truck", "subway", "tractor", "scooter", "bicycle", "motorcycle"] },
+        { "words": ["jet", "ferry", "yacht", "canoe", "kayak", "plane", "submarine", "helicopter"] }
+      ]
+    },
+    "clothing": {
+      "sets": [
+        { "words": ["hat", "tie", "cap", "sock", "shoe", "belt", "shirt", "jeans", "shorts", "dress", "sandals"] },
+        { "words": ["coat", "scarf", "gloves", "jacket", "blouse", "pajamas", "sweater", "trousers", "raincoat"] }
+      ]
+    },
+    "music": {
+      "sets": [
+        { "words": ["pop", "jazz", "rock", "folk", "singer", "chorus", "harmony", "melody", "rhythm"] },
+        { "words": ["drum", "cello", "banjo", "piano", "flute", "guitar", "violin", "trumpet", "saxophone", "concert", "symphony", "orchestra"] }
+      ]
     }
   }
 }
