@@ -10,12 +10,13 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#5a6fd8" />
-<link rel="stylesheet" href="style.css?v=3" />
+<link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body>
   <header>
     <h1>Wordweave <span id="level-badge" class="level-badge"></span> <span id="found-badge" class="found-badge"></span></h1>
     <div id="timer" class="timer" aria-live="off">0:00</div>
+    <button id="pause-btn" class="icon-btn" disabled aria-label="Pause" title="Pause">⏸</button>
     <div class="header-actions">
       <button id="help-btn" class="icon-btn" data-i18n-title="helpBtn" aria-label="How to play" title="How to play">?</button>
       <button id="new-game-btn" class="header-btn" data-i18n="newGameBtn" data-i18n-title="newGameBtn" title="New game">New Game</button>
@@ -41,6 +42,11 @@
     <div id="board-wrap">
       <div id="board" role="grid" aria-label="Letter grid"></div>
       <div id="badge-layer" aria-hidden="true"></div>
+      <div id="pause-overlay" class="pause-overlay hidden">
+        <span class="pause-icon">⏸</span>
+        <p data-i18n="pausedLabel">Paused</p>
+        <button id="resume-btn" class="btn-primary" data-i18n="resumeBtn">Resume</button>
+      </div>
     </div>
     <p id="message" role="status" aria-live="polite"></p>
     <div id="word-list" class="word-list" role="list" aria-label="Words to find"></div>
@@ -84,6 +90,6 @@
   </footer>
 
   <script src="i18n.js"></script>
-  <script src="script.js?v=3"></script>
+  <script src="script.js?v=4"></script>
 </body>
 </html>

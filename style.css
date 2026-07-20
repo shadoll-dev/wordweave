@@ -150,6 +150,17 @@ header h1 {
   background: var(--key-bg);
 }
 
+.icon-btn:disabled,
+.header-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.icon-btn:disabled:hover,
+.header-btn:disabled:hover {
+  background: none;
+}
+
 .icon-btn {
   width: 36px;
   height: 36px;
@@ -286,6 +297,47 @@ main {
 #badge-layer {
   pointer-events: none;
   z-index: 3;
+}
+
+#board-wrap.paused #board,
+#board-wrap.paused #badge-layer {
+  visibility: hidden;
+}
+
+.pause-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 2px solid var(--border-strong);
+}
+
+.pause-overlay.hidden {
+  display: none;
+}
+
+.pause-overlay .pause-icon {
+  font-size: 2.2rem;
+}
+
+.pause-overlay p {
+  margin: 0;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--border-strong);
+}
+
+.word-list.paused {
+  filter: blur(8px);
+  pointer-events: none;
+  user-select: none;
 }
 
 .cell {

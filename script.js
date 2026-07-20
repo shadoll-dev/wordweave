@@ -43,7 +43,12 @@
   let direction = null; // [dr, dc], locked once selection.length >= 2
   let gameOver = false;
   let statsRecorded = false;
-  let startTime = null; // Date.now() timestamp the timer effectively started counting from
+  // Elapsed time is pausedElapsedMs (time banked from earlier segments) plus, if a segment is
+  // currently ticking, Date.now() - startTime. startTime is null whenever nothing is actively
+  // ticking (before the first tap, while paused, or after a reload that didn't resume automatically).
+  let pausedElapsedMs = 0;
+  let startTime = null;
+  let paused = false;
   let timerInterval = null;
   let pendingConfirmAction = null;
 
@@ -55,6 +60,8 @@
   const foundBadgeEl = document.getElementById("found-badge");
   const levelBadgeEl = document.getElementById("level-badge");
   const timerEl = document.getElementById("timer");
+  const pauseBtn = document.getElementById("pause-btn");
+  const pauseOverlay = document.getElementById("pause-overlay");
   const helpModal = document.getElementById("help-modal");
   const statsModal = document.getElementById("stats-modal");
   const confirmModal = document.getElementById("confirm-modal");
@@ -253,7 +260,9 @@
     direction = null;
     gameOver = false;
     statsRecorded = false;
+    pausedElapsedMs = 0;
     startTime = null;
+    setPaused(false);
     stopTimerInterval();
     timerEl.textContent = formatTime(0);
     messageEl.textContent = "";
@@ -290,10 +299,11 @@
   }
 
   function handleCellTap(r, c) {
-    if (gameOver) return;
+    if (gameOver || paused) return;
     if (!startTime) {
       startTime = Date.now();
       startTimerInterval();
+      pauseBtn.disabled = false;
     }
 
     if (selection.length === 0) {
@@ -355,6 +365,7 @@
 
   function finishPuzzle() {
     gameOver = true;
+    pauseBtn.disabled = true;
     stopTimerInterval();
     const elapsed = Math.floor(elapsedMs() / 1000);
     messageEl.textContent = t("winMessage", formatTime(elapsed));
@@ -365,8 +376,40 @@
   }
 
   function elapsedMs() {
-    return startTime ? Date.now() - startTime : 0;
+    return pausedElapsedMs + (startTime ? Date.now() - startTime : 0);
   }
+
+  function setPaused(next) {
+    paused = next;
+    // Nothing to pause/resume before the first tap ever happens (startTime null, nothing banked,
+    // not already paused) — everything else (mid-game, or reloaded into a paused puzzle) is valid.
+    pauseBtn.disabled = gameOver || (!paused && !startTime && pausedElapsedMs === 0);
+    pauseBtn.textContent = paused ? "▶" : "⏸";
+    pauseBtn.setAttribute("aria-label", t(paused ? "resumeBtn" : "pauseBtn"));
+    pauseBtn.title = t(paused ? "resumeBtn" : "pauseBtn");
+    pauseOverlay.classList.toggle("hidden", !paused);
+    boardWrapEl.classList.toggle("paused", paused);
+    wordListEl.classList.toggle("paused", paused);
+  }
+
+  function togglePause() {
+    if (gameOver) return;
+    if (paused) {
+      startTime = Date.now();
+      setPaused(false);
+      startTimerInterval();
+    } else {
+      if (!startTime) return; // nothing actively ticking to pause
+      pausedElapsedMs = elapsedMs();
+      startTime = null;
+      stopTimerInterval();
+      setPaused(true);
+    }
+    saveState();
+  }
+
+  pauseBtn.addEventListener("click", togglePause);
+  pauseOverlay.addEventListener("click", togglePause);
 
   function formatTime(totalSeconds) {
     const m = Math.floor(totalSeconds / 60);
@@ -467,7 +510,10 @@
       gameOver,
       statsRecorded,
       elapsedMsAtSave: elapsedMs(),
-      wasTimerRunning: !gameOver && startTime !== null,
+      // A ticking segment (startTime set, not paused) resumes automatically on reload; a paused
+      // one stays paused (and hidden) so reloading mid-pause doesn't quietly reveal the board.
+      timerWasRunning: !gameOver && !paused && startTime !== null,
+      wasPaused: paused,
     };
     localStorage.setItem(storageKey(), JSON.stringify(state));
   }
@@ -494,21 +540,22 @@
     selection = [];
     direction = null;
 
-    const elapsedAtSave = state.elapsedMsAtSave || 0;
-    if (state.wasTimerRunning && !gameOver) {
-      startTime = Date.now() - elapsedAtSave;
+    pausedElapsedMs = state.elapsedMsAtSave || 0;
+    if (state.timerWasRunning && !gameOver) {
+      startTime = Date.now();
       startTimerInterval();
     } else {
-      startTime = elapsedAtSave > 0 ? Date.now() - elapsedAtSave : null;
-      timerEl.textContent = formatTime(Math.floor(elapsedAtSave / 1000));
+      startTime = null;
     }
+    timerEl.textContent = formatTime(Math.floor(pausedElapsedMs / 1000));
 
     renderBoard();
     renderWordList();
     updateFoundBadge();
     updateLevelBadge();
+    setPaused(Boolean(state.wasPaused) && !gameOver);
     if (gameOver) {
-      messageEl.textContent = t("winMessage", formatTime(Math.floor(elapsedAtSave / 1000)));
+      messageEl.textContent = t("winMessage", formatTime(Math.floor(pausedElapsedMs / 1000)));
     }
     return true;
   }
@@ -590,7 +637,7 @@
   }
 
   function hasProgress() {
-    return !gameOver && (startTime !== null || found.length > 0);
+    return !gameOver && (startTime !== null || paused || found.length > 0);
   }
 
   function requestFreshGame(action) {
