@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#5a6fd8" />
-<link rel="stylesheet" href="style.css?v=4" />
+<link rel="stylesheet" href="style.css?v=9" />
 </head>
 <body>
   <header>
@@ -39,16 +39,18 @@
   </header>
 
   <main>
-    <div id="board-wrap">
-      <div id="board" role="grid" aria-label="Letter grid"></div>
-      <div id="badge-layer" aria-hidden="true"></div>
-      <div id="pause-overlay" class="pause-overlay hidden">
-        <span class="pause-icon">⏸</span>
-        <p data-i18n="pausedLabel">Paused</p>
-        <button id="resume-btn" class="btn-primary" data-i18n="resumeBtn">Resume</button>
+    <div id="board-column">
+      <div id="board-wrap">
+        <div id="board" role="grid" aria-label="Letter grid"></div>
+        <div id="badge-layer" aria-hidden="true"></div>
+        <div id="pause-overlay" class="pause-overlay hidden">
+          <span id="pause-overlay-icon" class="pause-icon">▶</span>
+          <p id="pause-overlay-label">Ready to play</p>
+          <button id="resume-btn" class="btn-primary">Start</button>
+        </div>
       </div>
+      <p id="message" role="status" aria-live="polite"></p>
     </div>
-    <p id="message" role="status" aria-live="polite"></p>
     <div id="word-list" class="word-list" role="list" aria-label="Words to find"></div>
   </main>
 
@@ -59,6 +61,7 @@
       <p data-i18n="helpRule1">Tap a letter to start, then tap the next letter in line to extend your word — each tap adds a numbered badge showing the order you picked it in.</p>
       <p data-i18n="helpRule2">Tap the last letter you picked again to undo it. Tap an unrelated letter to start a new word from there instead.</p>
       <p data-i18n="helpRule3">Two words can cross through the same letter. As soon as your selection spells a listed word, it's marked found automatically.</p>
+      <p data-i18n="helpPause">Need to step away? Tap the ⏸ button next to the timer to pause — it stops the clock and hides the grid and word list until you resume.</p>
       <p><span data-i18n="helpMenuPre">Use the</span> <span class="menu-key">⋮</span> <span data-i18n="helpMenuPost">menu to change the word category, difficulty (grid size), and language at any time.</span></p>
       <button id="close-help-btn" class="btn-primary" data-i18n="close">Close</button>
     </div>
@@ -90,6 +93,6 @@
   </footer>
 
   <script src="i18n.js"></script>
-  <script src="script.js?v=4"></script>
+  <script src="script.js?v=7"></script>
 </body>
 </html>

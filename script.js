@@ -62,6 +62,9 @@
   const timerEl = document.getElementById("timer");
   const pauseBtn = document.getElementById("pause-btn");
   const pauseOverlay = document.getElementById("pause-overlay");
+  const pauseOverlayIcon = document.getElementById("pause-overlay-icon");
+  const pauseOverlayLabel = document.getElementById("pause-overlay-label");
+  const resumeBtn = document.getElementById("resume-btn");
   const helpModal = document.getElementById("help-modal");
   const statsModal = document.getElementById("stats-modal");
   const confirmModal = document.getElementById("confirm-modal");
@@ -262,7 +265,7 @@
     statsRecorded = false;
     pausedElapsedMs = 0;
     startTime = null;
-    setPaused(false);
+    setPaused(true); // fresh puzzle starts on the "ready to play" screen, not a running timer
     stopTimerInterval();
     timerEl.textContent = formatTime(0);
     messageEl.textContent = "";
@@ -299,12 +302,9 @@
   }
 
   function handleCellTap(r, c) {
+    // Taps are only reachable once the "ready to play"/pause overlay has been dismissed via
+    // togglePause(), which is what starts the timer now — no separate "first tap starts it" path.
     if (gameOver || paused) return;
-    if (!startTime) {
-      startTime = Date.now();
-      startTimerInterval();
-      pauseBtn.disabled = false;
-    }
 
     if (selection.length === 0) {
       selection = [[r, c]];
@@ -379,19 +379,34 @@
     return pausedElapsedMs + (startTime ? Date.now() - startTime : 0);
   }
 
+  // True once the puzzle has actually begun (some time banked, a segment ticking, or a word
+  // found) — false for a freshly generated puzzle sitting on its "ready to play" overlay.
+  function hasStarted() {
+    return pausedElapsedMs > 0 || startTime !== null || found.length > 0;
+  }
+
   function setPaused(next) {
     paused = next;
-    // Nothing to pause/resume before the first tap ever happens (startTime null, nothing banked,
-    // not already paused) — everything else (mid-game, or reloaded into a paused puzzle) is valid.
-    pauseBtn.disabled = gameOver || (!paused && !startTime && pausedElapsedMs === 0);
+    pauseBtn.disabled = gameOver;
     pauseBtn.textContent = paused ? "▶" : "⏸";
     pauseBtn.setAttribute("aria-label", t(paused ? "resumeBtn" : "pauseBtn"));
     pauseBtn.title = t(paused ? "resumeBtn" : "pauseBtn");
     pauseOverlay.classList.toggle("hidden", !paused);
     boardWrapEl.classList.toggle("paused", paused);
     wordListEl.classList.toggle("paused", paused);
+
+    // The overlay doubles as both the "ready to play" start screen and the pause screen —
+    // same mechanism (unhide the board, start a ticking segment), different framing.
+    if (paused) {
+      const fresh = !hasStarted();
+      pauseOverlayIcon.textContent = fresh ? "▶" : "⏸";
+      pauseOverlayLabel.textContent = t(fresh ? "readyLabel" : "pausedLabel");
+      resumeBtn.textContent = t(fresh ? "startBtn" : "resumeBtn");
+    }
   }
 
+  // Also serves as "Start": a fresh puzzle begins paused (see generateNewPuzzle), so the very
+  // first call here — startTime null, nothing banked — both unhides the board and starts the clock.
   function togglePause() {
     if (gameOver) return;
     if (paused) {
@@ -403,6 +418,7 @@
       pausedElapsedMs = elapsedMs();
       startTime = null;
       stopTimerInterval();
+      updateTimerDisplay(); // sync immediately -- don't wait for a tick that will never come
       setPaused(true);
     }
     saveState();
@@ -417,11 +433,14 @@
     return `${m}:${String(s).padStart(2, "0")}`;
   }
 
+  function updateTimerDisplay() {
+    timerEl.textContent = formatTime(Math.floor(elapsedMs() / 1000));
+  }
+
   function startTimerInterval() {
     stopTimerInterval();
-    timerInterval = setInterval(() => {
-      timerEl.textContent = formatTime(Math.floor(elapsedMs() / 1000));
-    }, 1000);
+    updateTimerDisplay();
+    timerInterval = setInterval(updateTimerDisplay, 1000);
   }
 
   function stopTimerInterval() {
@@ -637,7 +656,9 @@
   }
 
   function hasProgress() {
-    return !gameOver && (startTime !== null || paused || found.length > 0);
+    // Not hasStarted() alone: a freshly generated puzzle is "paused" (sitting on its ready screen)
+    // but has no actual progress to lose, so switching category/difficulty/language shouldn't warn.
+    return !gameOver && hasStarted();
   }
 
   function requestFreshGame(action) {

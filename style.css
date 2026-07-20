@@ -274,6 +274,14 @@ main {
   max-width: 640px;
 }
 
+#board-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
 #board-wrap {
   position: relative;
   width: min(92vw, 520px);
@@ -425,6 +433,7 @@ main {
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.02em;
+  text-align: center;
 }
 
 .word-chip.found {
@@ -577,4 +586,41 @@ main {
 
 #site-footer a:hover {
   text-decoration: underline;
+}
+
+/* Wide-enough landscape: word list moves to a side column instead of stacking below the board.
+   Gated on min-width too so short landscape phones (little vertical room, but not much width
+   either) keep the portrait stacked layout rather than squeezing everything sideways. Kept at the
+   very end of the file on purpose — #board-wrap/.word-list have unconditional base rules further
+   up that set the same properties (width, flex-direction); equal-specificity CSS resolves ties by
+   source order regardless of the media query, so putting this earlier let those base rules win and
+   silently no-op the whole landscape layout. */
+@media (orientation: landscape) and (min-width: 700px) {
+  main {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    max-width: 960px;
+    gap: 24px;
+  }
+
+  #board-column {
+    width: auto;
+    flex: 0 1 auto;
+  }
+
+  #board-wrap {
+    width: min(70vh, 480px);
+  }
+
+  .word-list {
+    flex-direction: column;
+    flex-wrap: nowrap; /* base rule sets wrap; column+wrap overflows into extra columns instead of scrolling */
+    align-items: stretch;
+    width: 200px;
+    flex-shrink: 0;
+    max-height: min(75vh, 600px);
+    overflow-y: auto;
+    padding-top: 8px;
+  }
 }
