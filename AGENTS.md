@@ -11,8 +11,10 @@ Wordweave — a word-search puzzle game with English/Ukrainian support, themed w
 There is no build step. Serve the directory over HTTP and load it in a browser:
 
 ```bash
-python3 -m http.server 8971
+python3 -m http.server 8972
 ```
+
+Port 8972 is this game's fixed dev-server port, tracked in the root [`AGENTS.md`](../AGENTS.md#local-dev-server-ports) alongside every other game's — don't change it or reuse it for another game in this repo. (This game was briefly, incorrectly, run on 8971 — `worder`'s port — during development; if you see stale references to 8971 anywhere in this project's history, that's what happened.)
 
 `script.js` fetches `words.en.json` / `words.uk.json` at startup (whichever is active), so the app must be served over HTTP(S) — it will not work opened as a `file://` URL.
 
@@ -79,11 +81,23 @@ Portrait (and narrow/short landscape) stacks `#board-column` (board + message) a
 
 Also note: `.word-list`'s base rule sets `flex-wrap: wrap`. The landscape override sets `flex-direction: column` but must also set `flex-wrap: nowrap` — `column` + inherited `wrap` together, once content exceeds `max-height`, wrap into *additional columns* instead of scrolling one column, which silently broke the side-list layout the same way (chips overflowing sideways in pairs) even after the source-order fix above.
 
+**Cell letter size.** `.cell`'s `font-size` is `clamp(0.6rem, calc(var(--cell-size, 32px) * 0.5), 1.5rem)`, where `--cell-size` is set on `#board-wrap` in JS (`updateCellFontSize()`, called after every `renderBoard()` and on a debounced `window resize` listener) from the *actually rendered* cell box (`boardWrapEl.getBoundingClientRect().width / gridSize`). Don't go back to a `vw`-based formula for this — that was tried first and looked fine in landscape purely by accident (there, `vw` happens to track the board's long axis) but was too small in portrait, where `vw` is the narrow axis and has no relationship to the actual cell size once you factor in `--cols` (9–14 depending on difficulty) and the landscape/portrait width formulas being completely different (`min(92vw, 520px)` vs `min(70vh, 480px)`). Measuring the real box is what makes the ratio (font ÷ cell width, ~0.52–0.54) stay consistent across every orientation × difficulty combination instead of guessing.
+
 - No comments explaining *what* code does — only *why*, when non-obvious (see existing sparse comments as the bar).
 - No build tooling, no dependencies. Keep it that way unless explicitly asked to add a bundler/framework.
 - Overflow actions live in the "⋮" menu (`#menu-panel`), not as standalone header buttons — reuse the existing `radiogroup` pattern (`buildRadioOptions()`) for any new global setting rather than adding a header button.
 - Native browser dialogs (`confirm()`/`alert()`) are intentionally avoided in favor of the styled `.modal` pattern — don't reintroduce them. The `pendingConfirmAction` + `requestFreshGame()` guard (shared by New Game, and by category/difficulty/language changes) is the pattern to reuse for anything else that should warn before discarding in-progress puzzle state.
 - Each found word gets its own color from an 8-color round-robin palette (`--word-0`..`--word-7` in `style.css`), assigned by `wordColorIndex()` in `script.js` from the word's fixed position in `targetWords` — stable across re-renders and reloads without needing extra persisted state. A cell shared by two found words renders a diagonal two-color split (`linear-gradient`, built inline in `renderBoard()` from `var(--word-N)` so it stays theme-aware); three+ overlapping found words at one cell only show the first two colors (rare, undocumented beyond this note — a real fix would need a wedge/stripe layout per additional color).
+
+## Offline support (service worker)
+
+`sw.js` is a cache-first service worker, same pattern as the sibling `worder` project. `PRECACHE_URLS` lists every file the app needs (markup, styles, script, both languages' `i18n.js`/`words.*.json`, icons, manifest); the `install` handler caches all of them up front so the app works with zero network connection after the first visit, not just for previously-visited puzzles. `registerServiceWorker()` in `script.js` registers it on `window load` and force-reloads once when a new service worker takes control (`controllerchange`), so an update actually replaces the running page instead of leaving stale JS active in a tab that's never closed.
+
+**If you add a new site asset** (a new language file, a new icon size, anything `index.html` references), add it to `PRECACHE_URLS` in `sw.js` too — anything not precached still works online (the fetch handler falls through to the network and caches the response opportunistically) but won't be available offline until it's been fetched at least once.
+
+Cache invalidation: `CACHE_NAME` embeds `CACHE_VERSION`, a `__CACHE_VERSION__` placeholder that `.github/workflows/pages.yml` replaces with `$GITHUB_SHA` at deploy time (`sed` step, mirrors the file-copy `cp` list — `sw.js` has to be in both). A new commit means a new cache name, and the `activate` handler deletes every other cache, so old assets can't linger. Locally the placeholder is never substituted (no CI step runs), so local testing always uses one cache named literally `wordweave-__CACHE_VERSION__` — that's expected, not a bug; it still round-trips through the real precache/fetch logic correctly, it just doesn't demonstrate the invalidation-on-deploy behavior (verify that on an actual deploy, or by manually editing the placeholder).
+
+Cache lookups use `{ ignoreSearch: true }` (`caches.match(event.request, { ignoreSearch: true })`) so a request for `style.css?v=11` still matches the precached `style.css` entry — `index.html` bumps a manual `?v=N` query param on `style.css`/`script.js` for plain-HTTP-server local dev cache-busting (see "Running & verifying changes" above), and without `ignoreSearch` those two cache-busting mechanisms would fight each other (every version bump would look like a cache miss to the service worker too, which is harmless but defeats offline-availability until a fresh network fetch happens).
 
 ## Deployment
 

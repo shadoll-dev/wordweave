@@ -358,7 +358,10 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(0.55rem, 2.4vw, 1.15rem);
+  /* --cell-size is measured in JS from the actual rendered cell box (see updateCellFontSize()) —
+     a viewport-width-based formula looked fine in landscape (vw is the board's long axis there)
+     but was too small in portrait, where vw is the narrow axis and unrelated to actual cell size. */
+  font-size: clamp(0.6rem, calc(var(--cell-size, 32px) * 0.5), 1.5rem);
   font-weight: bold;
   text-transform: uppercase;
   user-select: none;

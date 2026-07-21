@@ -30,9 +30,10 @@ jobs:
       - name: Stage site files
         run: |
           mkdir -p dist
-          cp index.html style.css script.js i18n.js words.en.json words.uk.json CNAME \
+          cp index.html style.css script.js i18n.js sw.js words.en.json words.uk.json CNAME \
              icon.svg apple-touch-icon.png favicon-32.png favicon-16.png icon-512.png manifest.json \
              dist/
+          sed -i "s/__CACHE_VERSION__/${GITHUB_SHA}/" dist/sw.js
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

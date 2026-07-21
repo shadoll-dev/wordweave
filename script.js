@@ -476,7 +476,26 @@
     }
     selectedEls = [];
     renderSelection();
+    updateCellFontSize();
   }
+
+  // Ties letter size to the actual rendered cell box rather than viewport width, so it's correct
+  // in both orientations and at every difficulty's column count (see the --cell-size comment in
+  // style.css for why a vw-based formula didn't work: it's decoupled from the real cell size).
+  function updateCellFontSize() {
+    if (!gridSize) return;
+    const cellPx = boardWrapEl.getBoundingClientRect().width / gridSize;
+    boardWrapEl.style.setProperty("--cell-size", `${cellPx}px`);
+  }
+
+  let resizeRaf = null;
+  window.addEventListener("resize", () => {
+    if (resizeRaf) return;
+    resizeRaf = requestAnimationFrame(() => {
+      resizeRaf = null;
+      updateCellFontSize();
+    });
+  });
 
   function renderSelection() {
     selectedEls.forEach((el) => el.classList.remove("selected"));
@@ -790,5 +809,23 @@
     renderMenus();
   }
 
+  function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) return;
+
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+
+    // A new SW takes control after skipWaiting()/clients.claim() once the previous
+    // page's assets are all replaced — reload once so the page picks up the update.
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+  }
+
   init();
+  registerServiceWorker();
 })();

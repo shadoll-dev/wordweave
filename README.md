@@ -20,16 +20,17 @@ A word-search puzzle game — single-page, no build step, no dependencies.
 - Progress (including the in-progress grid and timer) persists across page reloads, per language
 - Light/dark theme support (follows system preference)
 - App icon designed for Apple's Liquid Glass treatment on "Add to Home Screen" (full-bleed square, no baked-in corners/shadow), plus a `manifest.json` for standalone launch
+- **Works offline** — a service worker precaches the whole app (including both languages' word lists) on first visit, so it keeps working with no network connection after that
 
 ## Running locally
 
 No build tools or dependencies required — it's plain HTML/CSS/JS.
 
 ```bash
-python3 -m http.server 8971
+python3 -m http.server 8972
 ```
 
-Then open [http://localhost:8971](http://localhost:8971).
+Then open [http://localhost:8972](http://localhost:8972).
 
 > Word lists are loaded via `fetch()`, so the game must be served over HTTP — opening `index.html` directly as a `file://` URL won't work.
 
@@ -46,6 +47,7 @@ Then open [http://localhost:8971](http://localhost:8971).
 | `icon.svg`            | Master app icon (scalable, also used as the browser favicon)     |
 | `apple-touch-icon.png`, `favicon-32.png`, `favicon-16.png`, `icon-512.png` | Rasterized icon sizes |
 | `manifest.json`       | PWA metadata for "Add to Home Screen"                            |
+| `sw.js`               | Service worker — precaches the app for offline use               |
 | `CNAME`                | Custom domain for GitHub Pages                                   |
 
 ## Deployment
