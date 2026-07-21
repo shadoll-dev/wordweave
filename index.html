@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#5a6fd8" />
-<link rel="stylesheet" href="style.css?v=11" />
+<link rel="stylesheet" href="style.css?v=25" />
 </head>
 <body>
   <header>
@@ -88,11 +88,21 @@
     </div>
   </div>
 
+  <div id="category-select-modal" class="modal hidden">
+    <div class="modal-content select-modal-content">
+      <h2 id="category-select-title">Choose Category and Difficulty</h2>
+      <span class="menu-label" data-i18n="difficultyLabel">Difficulty</span>
+      <div id="category-select-level-options" class="lang-options select-level-options" role="radiogroup" aria-label="Difficulty"></div>
+      <p id="category-select-hint">Pick a category to start.</p>
+      <div id="category-select-list" class="category-select-list" role="list"></div>
+    </div>
+  </div>
+
   <footer id="site-footer">
     &copy; <a href="https://shadoll.dev" target="_blank" rel="noopener">shadoll</a>.&emsp;Made by <a href="https://m5y.p9o.uk" target="_blank" rel="noopener">Mykolay</a>, assisted by AI
   </footer>
 
   <script src="i18n.js"></script>
-  <script src="script.js?v=11"></script>
+  <script src="script.js?v=24"></script>
 </body>
 </html>

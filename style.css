@@ -550,6 +550,120 @@ main {
   margin-top: 12px;
 }
 
+/* Consistent vertical rhythm for this modal: 16px between major sections (title / difficulty /
+   hint / list), 4px between individual rows within a section — every margin/padding below is one
+   of those two numbers (or a divisor of the row gap) rather than an ad hoc value. */
+.select-modal-content {
+  max-width: 480px;
+}
+
+.select-modal-content h2 {
+  font-size: 1.05rem;
+  padding-bottom: 10px;
+}
+
+.select-modal-content .menu-label {
+  display: block;
+  margin: 16px 0 6px;
+}
+
+.select-level-options {
+  flex-direction: row;
+  gap: 6px;
+  margin: 0 0 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.select-level-options .lang-option {
+  flex: 1;
+  text-align: center;
+}
+
+#category-select-hint {
+  font-size: 0.7rem;
+  color: var(--border-strong);
+  letter-spacing: 0.03em;
+  margin: 0 0 16px;
+}
+
+.category-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 0;
+}
+
+.select-row {
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.tree-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.tree-toggle {
+  flex-shrink: 0;
+  width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--fg);
+  cursor: pointer;
+  font-size: 1.3rem;
+  font-weight: bold;
+  line-height: 1;
+  border-radius: 6px;
+}
+
+.tree-toggle:hover {
+  background: var(--key-bg);
+}
+
+.tree-label-btn {
+  flex: 1;
+}
+
+.tree-subcategories {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 32px;
+  margin-top: 2px;
+}
+
+.tree-subcategories.hidden {
+  display: none;
+}
+
+.tree-sub-row {
+  font-size: 0.8rem;
+  color: var(--fg);
+}
+
+.tree-mixed-row {
+  font-style: italic;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  margin-top: 4px;
+  padding-top: 12px;
+}
+
+.tree-random-row {
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 2px solid var(--border-strong);
+  border-radius: 0;
+  color: var(--selected);
+  text-align: center;
+  font-size: 0.9rem;
+}
+
 .stats-summary,
 .stats-distribution {
   display: flex;

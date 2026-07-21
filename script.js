@@ -1,12 +1,22 @@
 (function () {
   const LANG_KEY = "wordweave-lang";
   const LEVEL_KEY = "wordweave-level";
-  const CATEGORY_KEY = "wordweave-category";
+  const CATEGORY_MODE_KEY = "wordweave-categorymode";
+  const CATEGORY_MODES = ["random", "select"];
   const LANGUAGE_NAMES = { en: "English", uk: "Українська" };
   const SUPPORTED_LANGS = Object.keys(LANGUAGE_NAMES);
+  // Sorted alphabetically by the English display label — the menu no longer lists categories
+  // directly (see categoryMode below), but this order still drives the top-level list in the
+  // category-select modal, so keep it alphabetical. Every category is a pure grouping node with
+  // named subcategories holding the actual words (see words.*.json) — a category never holds
+  // words directly. "animals" absorbed babyanimals/cetaceans/mammals; "food" absorbed
+  // cheeses/fruit (cheese and fruit are foods, not their own top-level categories).
   const CATEGORIES = [
-    "animals", "countries", "food", "colors", "sports", "space",
-    "weather", "jobs", "vehicles", "clothing", "music",
+    "animals", "clothing", "colors", "countries",
+    "fitness", "food", "globalcities", "gymnastics", "islands",
+    "jobs", "languages", "money", "music", "nativity",
+    "onomatopoeia", "plants", "playingcards", "royalfamily", "space", "sports",
+    "stationery", "vehicles", "weather",
   ];
   const LEVELS = ["easy", "moderate", "hard"];
   // Grid size is derived per puzzle from how many letters its chosen word-set actually contributes
@@ -33,6 +43,8 @@
   let currentLang = "en";
   let wordLevel = "moderate";
   let currentCategory = "animals";
+  let currentSubcategory = null; // subcategory id, "mixed", or null for a category with no subcategories
+  let categoryMode = "random"; // "random" | "select" — controls what New Game does, see startNewPuzzleFlow()
   let WORDS = {};
 
   let grid = [];
@@ -68,6 +80,7 @@
   const helpModal = document.getElementById("help-modal");
   const statsModal = document.getElementById("stats-modal");
   const confirmModal = document.getElementById("confirm-modal");
+  const categorySelectModal = document.getElementById("category-select-modal");
   const menuBtn = document.getElementById("menu-btn");
   const menuPanel = document.getElementById("menu-panel");
 
@@ -98,9 +111,9 @@
     return LEVELS.includes(stored) ? stored : "moderate";
   }
 
-  function detectInitialCategory() {
-    const stored = localStorage.getItem(CATEGORY_KEY);
-    return CATEGORIES.includes(stored) ? stored : CATEGORIES[0];
+  function detectInitialCategoryMode() {
+    const stored = localStorage.getItem(CATEGORY_MODE_KEY);
+    return CATEGORY_MODES.includes(stored) ? stored : "random";
   }
 
   function closeMenu() {
@@ -205,17 +218,34 @@
     return null; // Never found a spot (rare) — the word is dropped from this puzzle, see AGENTS.md.
   }
 
-  // Each category holds several curated word-sets; picking one whole set per puzzle (rather than
-  // sampling across the category's full pool) keeps a single game thematically tighter.
-  function pickWordSet(category) {
-    const sets = (WORDS[category] && WORDS[category].sets) || [];
-    if (sets.length === 0) return [];
-    return sets[randomInt(sets.length)].words || [];
+  function categorySubcategories(category) {
+    const cat = WORDS[category];
+    return (cat && cat.subcategories) || null;
   }
 
-  function buildPuzzle(category, level) {
+  // Some categories (currently just "animals") are split into named subcategories, each of which
+  // — like a plain category — holds several curated word-sets; picking one whole set per puzzle
+  // (rather than sampling across the pool) keeps a single game thematically tighter.
+  // subcategoryId "mixed" (or omitted, for a category *with* subcategories) means "All Mixed":
+  // pool every subcategory's every set together instead of picking just one.
+  function pickWordSet(category, subcategoryId) {
+    const subcats = categorySubcategories(category);
+    if (subcats) {
+      if (!subcategoryId || subcategoryId === "mixed") {
+        const all = new Set();
+        for (const sub of subcats) for (const set of sub.sets) for (const w of set.words) all.add(w);
+        return [...all];
+      }
+      const sub = subcats.find((s) => s.id === subcategoryId);
+      return (sub && sub.sets[randomInt(sub.sets.length)].words) || [];
+    }
+    const sets = (WORDS[category] && WORDS[category].sets) || [];
+    return sets.length ? sets[randomInt(sets.length)].words || [] : [];
+  }
+
+  function buildPuzzle(category, subcategoryId, level) {
     const { minSize, maxSize, wordCount } = LEVEL_CONFIG[level];
-    const pool = pickWordSet(category).filter((w) => Array.from(w).length <= maxSize);
+    const pool = pickWordSet(category, subcategoryId).filter((w) => Array.from(w).length <= maxSize);
     const chosen = shuffle(pool).slice(0, wordCount);
 
     const totalLetters = chosen.reduce((sum, w) => sum + Array.from(w).length, 0);
@@ -248,13 +278,13 @@
     return { grid: g, size, targetWords: placed.map((p) => p.word) };
   }
 
-  function generateNewPuzzle(category, level) {
+  function generateNewPuzzle(category, subcategoryId, level) {
     currentCategory = category;
+    currentSubcategory = subcategoryId || null;
     wordLevel = level;
-    localStorage.setItem(CATEGORY_KEY, category);
     localStorage.setItem(LEVEL_KEY, level);
 
-    const built = buildPuzzle(category, level);
+    const built = buildPuzzle(category, currentSubcategory, level);
     grid = built.grid;
     gridSize = built.size;
     targetWords = built.targetWords;
@@ -276,6 +306,139 @@
     updateFoundBadge();
     updateLevelBadge();
     saveState();
+  }
+
+  function pickRandomCategoryAndSubcategory() {
+    const category = CATEGORIES[randomInt(CATEGORIES.length)];
+    const subcats = categorySubcategories(category);
+    if (!subcats) return { category, subcategory: null };
+    // "mixed" (All Mixed) is just another option in the pool, not special-cased out of Random.
+    const options = [...subcats.map((s) => s.id), "mixed"];
+    return { category, subcategory: options[randomInt(options.length)] };
+  }
+
+  // What "New Game" (and a fresh app load with no saved puzzle) actually does depends on
+  // categoryMode: "random" picks immediately, "select" opens the picker and waits for a tap —
+  // generateNewPuzzle() only runs once a category (and subcategory, if any) is actually chosen.
+  function startNewPuzzleFlow() {
+    if (categoryMode === "select") {
+      openCategorySelectModal();
+    } else {
+      const { category, subcategory } = pickRandomCategoryAndSubcategory();
+      generateNewPuzzle(category, subcategory, wordLevel);
+    }
+  }
+
+  // A single-screen tree, not a second "drill in" screen: navigating to a whole new list (even
+  // with a Back row) read as an extra window bolted on. Each category is one row with two
+  // independent click targets: tapping the *label* immediately starts an "All Mixed" puzzle for
+  // that category (the common case — most people don't care which specific topic they get);
+  // tapping the separate ▸ toggle expands/collapses that category's topics inline, indented
+  // underneath, without picking anything or leaving the screen. Every category has subcategories
+  // now (see AGENTS.md), so every row gets a toggle — no branching for a topic-less category.
+  // Reads wordLevel fresh at pick time (not a captured param) so the difficulty picker duplicated
+  // at the top of this same modal (see renderCategorySelectDifficulty()) can change it mid-picker.
+  function renderCategoryTree() {
+    const container = document.getElementById("category-select-list");
+    container.innerHTML = "";
+    const pick = (categoryId, subcategoryId) => {
+      categorySelectModal.classList.add("hidden");
+      generateNewPuzzle(categoryId, subcategoryId, wordLevel);
+    };
+    CATEGORIES.forEach((id) => {
+      const subcats = categorySubcategories(id);
+
+      const row = document.createElement("div");
+      row.className = "tree-row";
+
+      const toggleBtn = document.createElement("button");
+      toggleBtn.type = "button";
+      toggleBtn.className = "tree-toggle";
+      toggleBtn.textContent = "▸";
+      toggleBtn.setAttribute("aria-expanded", "false");
+      toggleBtn.setAttribute("aria-label", t("expandLabel"));
+
+      const labelBtn = document.createElement("button");
+      labelBtn.type = "button";
+      labelBtn.className = "menu-item select-row tree-label-btn";
+      labelBtn.textContent = t(`category${capitalize(id)}`);
+
+      row.appendChild(toggleBtn);
+      row.appendChild(labelBtn);
+      container.appendChild(row);
+
+      const subContainer = document.createElement("div");
+      subContainer.className = "tree-subcategories hidden";
+      (subcats || []).forEach((sub) => {
+        const subBtn = document.createElement("button");
+        subBtn.type = "button";
+        subBtn.className = "menu-item select-row tree-sub-row";
+        subBtn.textContent = sub.name;
+        subBtn.addEventListener("click", () => pick(id, sub.id));
+        subContainer.appendChild(subBtn);
+      });
+      // "All Mixed" is a subcategory-list row like any other, not a shortcut hidden behind the
+      // category label — the label's only job now is expand/collapse, same as the ▸ toggle, so
+      // tapping a category never surprises someone by starting a puzzle before they've seen the
+      // topic list.
+      const mixedBtn = document.createElement("button");
+      mixedBtn.type = "button";
+      mixedBtn.className = "menu-item select-row tree-sub-row tree-mixed-row";
+      mixedBtn.textContent = t("allMixedLabel");
+      mixedBtn.addEventListener("click", () => pick(id, "mixed"));
+      subContainer.appendChild(mixedBtn);
+      container.appendChild(subContainer);
+
+      // Label and toggle are two buttons doing the exact same thing (expand/collapse) — the
+      // whole row is one click target in effect, not "tap label to pick, tap arrow to browse".
+      const toggle = () => {
+        const nowHidden = subContainer.classList.toggle("hidden");
+        toggleBtn.textContent = nowHidden ? "▸" : "▾";
+        toggleBtn.setAttribute("aria-expanded", String(!nowHidden));
+      };
+      toggleBtn.addEventListener("click", toggle);
+      labelBtn.addEventListener("click", toggle);
+    });
+
+    // A one-off convenience action, not the same thing as switching categoryMode to "random":
+    // this picks once, right now, from within the Select picker, and leaves categoryMode alone —
+    // the next time New Game runs, Select mode still opens this same picker rather than silently
+    // becoming Random mode because someone used this row once.
+    const randomRow = document.createElement("button");
+    randomRow.type = "button";
+    randomRow.className = "menu-item select-row tree-random-row";
+    randomRow.textContent = t("randomPickLabel");
+    randomRow.addEventListener("click", () => {
+      const { category, subcategory } = pickRandomCategoryAndSubcategory();
+      pick(category, subcategory);
+    });
+    container.appendChild(randomRow);
+  }
+
+  // Difficulty is duplicated here (same LEVELS/buildRadioOptions as the main "⋮" menu) so picking
+  // a category and setting the difficulty for it can happen in one place — without this, Select
+  // mode meant closing the picker, going back into the menu for difficulty, then New Game again.
+  function renderCategorySelectDifficulty() {
+    buildRadioOptions(
+      document.getElementById("category-select-level-options"),
+      LEVELS.map((l) => ({ value: l, label: t(`level${capitalize(l)}`) })),
+      wordLevel,
+      (value) => {
+        if (value === wordLevel) return;
+        wordLevel = value;
+        localStorage.setItem(LEVEL_KEY, value);
+        renderCategorySelectDifficulty();
+        renderMenus(); // keep the "⋮" menu's own difficulty radio in sync with this duplicate picker
+      }
+    );
+  }
+
+  function openCategorySelectModal() {
+    document.getElementById("category-select-title").textContent = t("selectCategoryTitle");
+    document.getElementById("category-select-hint").textContent = t("selectCategoryHint");
+    renderCategorySelectDifficulty();
+    renderCategoryTree();
+    categorySelectModal.classList.remove("hidden");
   }
 
   function isAdjacent(a, b) {
@@ -540,6 +703,7 @@
   function saveState() {
     const state = {
       category: currentCategory,
+      subcategory: currentSubcategory,
       level: wordLevel,
       size: gridSize,
       grid,
@@ -568,6 +732,7 @@
     if (!state || !Array.isArray(state.grid) || !Array.isArray(state.targetWords)) return false;
 
     currentCategory = CATEGORIES.includes(state.category) ? state.category : currentCategory;
+    currentSubcategory = typeof state.subcategory === "string" ? state.subcategory : null;
     wordLevel = LEVELS.includes(state.level) ? state.level : wordLevel;
     grid = state.grid;
     gridSize = state.size || grid.length;
@@ -704,16 +869,18 @@
   }
 
   function renderMenus() {
+    // Category is no longer picked directly in the menu (28 categories × subcategories made that
+    // list unusable) — instead this just toggles what "New Game" does: "random" picks immediately,
+    // "select" opens the category-select modal. See startNewPuzzleFlow().
     buildRadioOptions(
       document.getElementById("category-options"),
-      CATEGORIES.map((c) => ({ value: c, label: t(`category${capitalize(c)}`) })),
-      currentCategory,
+      CATEGORY_MODES.map((m) => ({ value: m, label: t(`categoryMode${capitalize(m)}`) })),
+      categoryMode,
       (value) => {
-        if (value === currentCategory) return closeMenu();
-        requestFreshGame(() => {
-          generateNewPuzzle(value, wordLevel);
-          renderMenus();
-        });
+        if (value === categoryMode) return closeMenu();
+        categoryMode = value;
+        localStorage.setItem(CATEGORY_MODE_KEY, value);
+        renderMenus();
         closeMenu();
       }
     );
@@ -724,7 +891,7 @@
       (value) => {
         if (value === wordLevel) return closeMenu();
         requestFreshGame(() => {
-          generateNewPuzzle(currentCategory, value);
+          generateNewPuzzle(currentCategory, currentSubcategory, value);
           renderMenus();
         });
         closeMenu();
@@ -742,7 +909,7 @@
           document.documentElement.lang = value;
           await loadWords();
           applyStaticTranslations();
-          generateNewPuzzle(currentCategory, wordLevel);
+          generateNewPuzzle(currentCategory, currentSubcategory, wordLevel);
           renderMenus();
         });
         closeMenu();
@@ -779,7 +946,7 @@
   });
 
   document.getElementById("new-game-btn").addEventListener("click", () => {
-    requestFreshGame(() => generateNewPuzzle(currentCategory, wordLevel));
+    requestFreshGame(() => startNewPuzzleFlow());
   });
 
   document.getElementById("confirm-ok-btn").addEventListener("click", () => {
@@ -797,20 +964,33 @@
   async function init() {
     currentLang = detectInitialLang();
     wordLevel = detectInitialLevel();
-    currentCategory = detectInitialCategory();
+    categoryMode = detectInitialCategoryMode();
     document.documentElement.lang = currentLang;
 
     await loadWords();
     applyStaticTranslations();
 
     if (!loadState()) {
-      generateNewPuzzle(currentCategory, wordLevel);
+      startNewPuzzleFlow();
     }
     renderMenus();
   }
 
   function registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
+
+    // Local dev must always reflect whatever's currently on disk. sw.js's CACHE_NAME only changes
+    // on a real deploy (the __CACHE_VERSION__ placeholder is substituted by CI, never locally), so
+    // a service worker registered here would serve one fixed snapshot forever, silently ignoring
+    // every subsequent edit and every ?v=N cache-bust — exactly the "why is this still old" bug
+    // this comment exists to prevent someone from re-introducing. Actively unregister here too
+    // (not just skip future registration) so a *previously* registered local SW self-heals on the
+    // next load instead of requiring a manual DevTools "Unregister" from whoever hit this.
+    if (["localhost", "127.0.0.1"].includes(location.hostname)) {
+      navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
+      if (window.caches) caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+      return;
+    }
 
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("sw.js").catch(() => {});

@@ -1,75 +1,1298 @@
 {
   "categories": {
     "animals": {
-      "sets": [
-        { "words": ["cat", "pig", "cow", "hen", "horse", "sheep", "rabbit", "mouse"] },
-        { "words": ["fox", "wolf", "lion", "bear", "tiger", "zebra", "koala", "panda", "monkey", "giraffe", "elephant", "kangaroo", "camel", "moose"] },
-        { "words": ["owl", "bee", "ant", "bat", "seal", "otter", "gecko", "shark", "eagle", "whale", "snake", "spider", "dolphin", "penguin", "crocodile"] }
+      "subcategories": [
+        {
+          "id": "farmpets",
+          "name": "Farm & Pets",
+          "sets": [
+            {
+              "words": [
+                "cat",
+                "pig",
+                "cow",
+                "hen",
+                "horse",
+                "sheep",
+                "rabbit",
+                "mouse"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "wild",
+          "name": "Wild Animals",
+          "sets": [
+            {
+              "words": [
+                "fox",
+                "wolf",
+                "lion",
+                "bear",
+                "tiger",
+                "zebra",
+                "koala",
+                "panda",
+                "monkey",
+                "giraffe",
+                "elephant",
+                "kangaroo",
+                "camel",
+                "moose"
+              ]
+            },
+            {
+              "words": [
+                "deer",
+                "rhino",
+                "hippo",
+                "badger",
+                "beaver",
+                "squirrel",
+                "raccoon",
+                "hedgehog",
+                "mole",
+                "weasel"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "seaair",
+          "name": "Sea, Air & Reptiles",
+          "sets": [
+            {
+              "words": [
+                "owl",
+                "bee",
+                "ant",
+                "bat",
+                "seal",
+                "otter",
+                "gecko",
+                "shark",
+                "eagle",
+                "whale",
+                "snake",
+                "spider",
+                "dolphin",
+                "penguin",
+                "crocodile"
+              ]
+            },
+            {
+              "words": [
+                "orca",
+                "beluga",
+                "narwhal",
+                "humpback",
+                "minke",
+                "sperm",
+                "blue",
+                "fin",
+                "bowhead",
+                "gray",
+                "right"
+              ]
+            },
+            {
+              "words": [
+                "porpoise",
+                "bottlenose",
+                "spinner",
+                "striped",
+                "common",
+                "pilot",
+                "risso",
+                "atlantic",
+                "pacific"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "baby",
+          "name": "Baby Animals",
+          "sets": [
+            {
+              "words": [
+                "cub",
+                "calf",
+                "kit",
+                "foal",
+                "fawn",
+                "joey",
+                "chick",
+                "kitten",
+                "puppy",
+                "piglet",
+                "lamb",
+                "duckling"
+              ]
+            },
+            {
+              "words": [
+                "tadpole",
+                "gosling",
+                "cygnet",
+                "fledgling",
+                "kid",
+                "colt",
+                "pup"
+              ]
+            }
+          ]
+        }
       ]
     },
     "countries": {
-      "sets": [
-        { "words": ["chad", "mali", "togo", "iran", "iraq", "oman", "kenya", "egypt", "ghana", "qatar"] },
-        { "words": ["cuba", "peru", "chile", "fiji", "canada", "mexico", "colombia", "argentina", "australia"] },
-        { "words": ["laos", "japan", "spain", "india", "nepal", "italy", "poland", "norway", "france", "sweden", "turkey", "belgium", "ukraine", "germany", "portugal", "thailand", "switzerland"] }
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Africa & Middle East",
+          "sets": [
+            {
+              "words": [
+                "chad",
+                "mali",
+                "togo",
+                "iran",
+                "iraq",
+                "oman",
+                "kenya",
+                "egypt",
+                "ghana",
+                "qatar"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Americas & Oceania",
+          "sets": [
+            {
+              "words": [
+                "cuba",
+                "peru",
+                "chile",
+                "fiji",
+                "canada",
+                "mexico",
+                "colombia",
+                "argentina",
+                "australia"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "c",
+          "name": "Europe & Asia",
+          "sets": [
+            {
+              "words": [
+                "laos",
+                "japan",
+                "spain",
+                "india",
+                "nepal",
+                "italy",
+                "poland",
+                "norway",
+                "france",
+                "sweden",
+                "turkey",
+                "belgium",
+                "ukraine",
+                "germany",
+                "portugal",
+                "thailand",
+                "switzerland"
+              ]
+            }
+          ]
+        }
       ]
     },
     "food": {
-      "sets": [
-        { "words": ["pea", "nut", "corn", "lime", "plum", "salad", "mango", "avocado", "broccoli", "pineapple"] },
-        { "words": ["ham", "egg", "beef", "rice", "fish", "soup", "taco", "pizza", "sushi", "bacon", "pasta", "bread", "waffle", "noodle", "burger", "cheese", "pancake", "sandwich"] },
-        { "words": ["tea", "pie", "jam", "cake", "syrup", "honey", "yogurt", "cookie", "chocolate"] }
+      "subcategories": [
+        {
+          "id": "veg",
+          "name": "Vegetables",
+          "sets": [
+            {
+              "words": [
+                "pea",
+                "nut",
+                "corn",
+                "carrot",
+                "onion",
+                "potato",
+                "cabbage",
+                "pepper",
+                "spinach",
+                "avocado",
+                "broccoli",
+                "salad"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "savory",
+          "name": "Savory & Mains",
+          "sets": [
+            {
+              "words": [
+                "ham",
+                "egg",
+                "beef",
+                "rice",
+                "fish",
+                "soup",
+                "taco",
+                "pizza",
+                "sushi",
+                "bacon",
+                "pasta",
+                "bread",
+                "waffle",
+                "noodle",
+                "burger",
+                "cheese",
+                "pancake",
+                "sandwich"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sweets",
+          "name": "Sweets & Drinks",
+          "sets": [
+            {
+              "words": [
+                "tea",
+                "pie",
+                "jam",
+                "cake",
+                "syrup",
+                "honey",
+                "yogurt",
+                "cookie",
+                "chocolate"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "fruit",
+          "name": "Common Fruits",
+          "sets": [
+            {
+              "words": [
+                "apple",
+                "banana",
+                "grape",
+                "orange",
+                "lemon",
+                "cherry",
+                "peach",
+                "melon",
+                "kiwi",
+                "plum"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "exoticfruit",
+          "name": "Exotic Fruits & Berries",
+          "sets": [
+            {
+              "words": [
+                "mango",
+                "papaya",
+                "guava",
+                "lychee",
+                "strawberry",
+                "blueberry",
+                "raspberry",
+                "pineapple",
+                "coconut",
+                "fig"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "softcheese",
+          "name": "Soft Cheeses",
+          "sets": [
+            {
+              "words": [
+                "brie",
+                "feta",
+                "ricotta",
+                "mozzarella",
+                "camembert",
+                "cottage"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hardcheese",
+          "name": "Hard & Aged Cheeses",
+          "sets": [
+            {
+              "words": [
+                "gouda",
+                "cheddar",
+                "swiss",
+                "parmesan",
+                "gorgonzola",
+                "edam",
+                "manchego"
+              ]
+            }
+          ]
+        }
       ]
     },
     "colors": {
-      "sets": [
-        { "words": ["red", "rust", "gold", "rose", "amber", "coral", "maroon", "crimson", "bronze"] },
-        { "words": ["navy", "teal", "cyan", "indigo", "violet", "magenta", "lavender", "turquoise", "jade"] },
-        { "words": ["tan", "jet", "wine", "mint", "gray", "plum", "lilac", "beige", "olive", "khaki", "ivory", "silver", "emerald"] }
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Warm Tones",
+          "sets": [
+            {
+              "words": [
+                "red",
+                "rust",
+                "gold",
+                "rose",
+                "amber",
+                "coral",
+                "maroon",
+                "crimson",
+                "bronze"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Cool Tones",
+          "sets": [
+            {
+              "words": [
+                "navy",
+                "teal",
+                "cyan",
+                "indigo",
+                "violet",
+                "magenta",
+                "lavender",
+                "turquoise",
+                "jade"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "c",
+          "name": "Neutrals",
+          "sets": [
+            {
+              "words": [
+                "tan",
+                "jet",
+                "wine",
+                "mint",
+                "gray",
+                "plum",
+                "lilac",
+                "beige",
+                "olive",
+                "khaki",
+                "ivory",
+                "silver",
+                "emerald"
+              ]
+            }
+          ]
+        }
       ]
     },
     "sports": {
-      "sets": [
-        { "words": ["golf", "polo", "rugby", "tennis", "hockey", "cricket", "softball", "football", "handball", "baseball", "basketball", "volleyball", "badminton"] },
-        { "words": ["judo", "darts", "boxing", "karate", "fencing", "archery", "bowling", "wrestling", "gymnastics", "run"] },
-        { "words": ["ski", "surf", "skate", "diving", "rowing", "sailing", "curling", "cycling", "swimming", "triathlon"] }
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Ball Sports",
+          "sets": [
+            {
+              "words": [
+                "golf",
+                "polo",
+                "rugby",
+                "tennis",
+                "hockey",
+                "cricket",
+                "softball",
+                "football",
+                "handball",
+                "baseball",
+                "basketball",
+                "volleyball",
+                "badminton"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Combat & Individual",
+          "sets": [
+            {
+              "words": [
+                "judo",
+                "darts",
+                "boxing",
+                "karate",
+                "fencing",
+                "archery",
+                "bowling",
+                "wrestling",
+                "gymnastics",
+                "run"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "c",
+          "name": "Water & Winter",
+          "sets": [
+            {
+              "words": [
+                "ski",
+                "surf",
+                "skate",
+                "diving",
+                "rowing",
+                "sailing",
+                "curling",
+                "cycling",
+                "swimming",
+                "triathlon"
+              ]
+            }
+          ]
+        }
       ]
     },
     "space": {
-      "sets": [
-        { "words": ["sun", "moon", "mars", "star", "venus", "earth", "saturn", "mercury", "jupiter", "asteroid", "comet", "meteor"] },
-        { "words": ["void", "gravity", "eclipse", "pulsar", "quasar", "galaxy", "cosmos", "nebula", "universe", "supernova", "crater"] },
-        { "words": ["orbit", "planet", "rocket", "telescope", "satellite", "astronaut", "spacecraft"] }
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Planets & Bodies",
+          "sets": [
+            {
+              "words": [
+                "sun",
+                "moon",
+                "mars",
+                "star",
+                "venus",
+                "earth",
+                "saturn",
+                "mercury",
+                "jupiter",
+                "asteroid",
+                "comet",
+                "meteor"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Phenomena & Science",
+          "sets": [
+            {
+              "words": [
+                "void",
+                "gravity",
+                "eclipse",
+                "pulsar",
+                "quasar",
+                "galaxy",
+                "cosmos",
+                "nebula",
+                "universe",
+                "supernova",
+                "crater"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "c",
+          "name": "Exploration & Tech",
+          "sets": [
+            {
+              "words": [
+                "orbit",
+                "planet",
+                "rocket",
+                "telescope",
+                "satellite",
+                "astronaut",
+                "spacecraft"
+              ]
+            }
+          ]
+        }
       ]
     },
     "weather": {
-      "sets": [
-        { "words": ["fog", "sun", "rain", "snow", "wind", "cloud", "breeze", "frost", "humid"] },
-        { "words": ["hail", "storm", "monsoon", "drizzle", "tornado", "thunder", "blizzard", "hurricane", "lightning", "rainbow"] }
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Everyday Weather",
+          "sets": [
+            {
+              "words": [
+                "fog",
+                "sun",
+                "rain",
+                "snow",
+                "wind",
+                "cloud",
+                "breeze",
+                "frost",
+                "humid"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Storms & Extremes",
+          "sets": [
+            {
+              "words": [
+                "hail",
+                "storm",
+                "monsoon",
+                "drizzle",
+                "tornado",
+                "thunder",
+                "blizzard",
+                "hurricane",
+                "lightning",
+                "rainbow"
+              ]
+            }
+          ]
+        }
       ]
     },
     "jobs": {
-      "sets": [
-        { "words": ["cook", "chef", "nurse", "farmer", "teacher", "builder", "plumber", "painter", "dentist", "doctor"] },
-        { "words": ["pilot", "actor", "judge", "coach", "dancer", "lawyer", "mechanic", "engineer", "musician", "designer", "scientist", "firefighter"] }
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Everyday Jobs",
+          "sets": [
+            {
+              "words": [
+                "cook",
+                "chef",
+                "nurse",
+                "farmer",
+                "teacher",
+                "builder",
+                "plumber",
+                "painter",
+                "dentist",
+                "doctor"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Skilled & Creative",
+          "sets": [
+            {
+              "words": [
+                "pilot",
+                "actor",
+                "judge",
+                "coach",
+                "dancer",
+                "lawyer",
+                "mechanic",
+                "engineer",
+                "musician",
+                "designer",
+                "scientist",
+                "firefighter"
+              ]
+            }
+          ]
+        }
       ]
     },
     "vehicles": {
-      "sets": [
-        { "words": ["car", "bus", "van", "bike", "taxi", "tram", "train", "truck", "subway", "tractor", "scooter", "bicycle", "motorcycle"] },
-        { "words": ["jet", "ferry", "yacht", "canoe", "kayak", "plane", "submarine", "helicopter"] }
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Road & Rail",
+          "sets": [
+            {
+              "words": [
+                "car",
+                "bus",
+                "van",
+                "bike",
+                "taxi",
+                "tram",
+                "train",
+                "truck",
+                "subway",
+                "tractor",
+                "scooter",
+                "bicycle",
+                "motorcycle"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Air & Water",
+          "sets": [
+            {
+              "words": [
+                "jet",
+                "ferry",
+                "yacht",
+                "canoe",
+                "kayak",
+                "plane",
+                "submarine",
+                "helicopter"
+              ]
+            }
+          ]
+        }
       ]
     },
     "clothing": {
-      "sets": [
-        { "words": ["hat", "tie", "cap", "sock", "shoe", "belt", "shirt", "jeans", "shorts", "dress", "sandals"] },
-        { "words": ["coat", "scarf", "gloves", "jacket", "blouse", "pajamas", "sweater", "trousers", "raincoat"] }
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Everyday Wear",
+          "sets": [
+            {
+              "words": [
+                "hat",
+                "tie",
+                "cap",
+                "sock",
+                "shoe",
+                "belt",
+                "shirt",
+                "jeans",
+                "shorts",
+                "dress",
+                "sandals"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Outerwear & More",
+          "sets": [
+            {
+              "words": [
+                "coat",
+                "scarf",
+                "gloves",
+                "jacket",
+                "blouse",
+                "pajamas",
+                "sweater",
+                "trousers",
+                "raincoat"
+              ]
+            }
+          ]
+        }
       ]
     },
     "music": {
-      "sets": [
-        { "words": ["pop", "jazz", "rock", "folk", "singer", "chorus", "harmony", "melody", "rhythm"] },
-        { "words": ["drum", "cello", "banjo", "piano", "flute", "guitar", "violin", "trumpet", "saxophone", "concert", "symphony", "orchestra"] }
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Genres & Performers",
+          "sets": [
+            {
+              "words": [
+                "pop",
+                "jazz",
+                "rock",
+                "folk",
+                "singer",
+                "chorus",
+                "harmony",
+                "melody",
+                "rhythm"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Instruments & Ensembles",
+          "sets": [
+            {
+              "words": [
+                "drum",
+                "cello",
+                "banjo",
+                "piano",
+                "flute",
+                "guitar",
+                "violin",
+                "trumpet",
+                "saxophone",
+                "concert",
+                "symphony",
+                "orchestra"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "playingcards": {
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Cards & Suits",
+          "sets": [
+            {
+              "words": [
+                "ace",
+                "king",
+                "queen",
+                "jack",
+                "ten",
+                "joker",
+                "spade",
+                "heart",
+                "club",
+                "diamond"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Card Games & Terms",
+          "sets": [
+            {
+              "words": [
+                "poker",
+                "bridge",
+                "rummy",
+                "solitaire",
+                "deck",
+                "shuffle",
+                "dealer",
+                "trump",
+                "bluff",
+                "wildcard"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "royalfamily": {
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Titles",
+          "sets": [
+            {
+              "words": [
+                "king",
+                "queen",
+                "prince",
+                "princess",
+                "duke",
+                "duchess",
+                "earl",
+                "baron",
+                "lord",
+                "lady"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Royal Court",
+          "sets": [
+            {
+              "words": [
+                "crown",
+                "throne",
+                "palace",
+                "castle",
+                "monarch",
+                "regent",
+                "heir",
+                "coronation",
+                "courtier"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "islands": {
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Famous Islands",
+          "sets": [
+            {
+              "words": [
+                "cuba",
+                "java",
+                "bali",
+                "crete",
+                "malta",
+                "corsica",
+                "sicily",
+                "madagascar",
+                "iceland",
+                "greenland"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Island Terms",
+          "sets": [
+            {
+              "words": [
+                "atoll",
+                "reef",
+                "lagoon",
+                "archipelago",
+                "peninsula",
+                "coastline",
+                "tropical",
+                "volcanic",
+                "coral"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "gymnastics": {
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Apparatus",
+          "sets": [
+            {
+              "words": [
+                "vault",
+                "beam",
+                "rings",
+                "floor",
+                "bars",
+                "rope",
+                "hoop",
+                "ribbon",
+                "trampoline"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Moves & Terms",
+          "sets": [
+            {
+              "words": [
+                "flip",
+                "split",
+                "tumble",
+                "cartwheel",
+                "handstand",
+                "somersault",
+                "balance",
+                "routine",
+                "gymnast"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "onomatopoeia": {
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Sounds",
+          "sets": [
+            {
+              "words": [
+                "buzz",
+                "hiss",
+                "pop",
+                "bang",
+                "crash",
+                "splash",
+                "boom",
+                "click",
+                "thud",
+                "zoom",
+                "sizzle"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "More Sounds",
+          "sets": [
+            {
+              "words": [
+                "clap",
+                "snap",
+                "crack",
+                "rustle",
+                "whoosh",
+                "chirp",
+                "growl",
+                "meow",
+                "honk",
+                "ding"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "stationery": {
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Writing Tools",
+          "sets": [
+            {
+              "words": [
+                "pen",
+                "pencil",
+                "marker",
+                "crayon",
+                "eraser",
+                "ruler",
+                "highlighter",
+                "stapler",
+                "scissors"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Paper & Office",
+          "sets": [
+            {
+              "words": [
+                "paper",
+                "folder",
+                "binder",
+                "envelope",
+                "notebook",
+                "sticker",
+                "clip",
+                "glue",
+                "tape"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "plants": {
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Garden Plants",
+          "sets": [
+            {
+              "words": [
+                "rose",
+                "tulip",
+                "daisy",
+                "fern",
+                "cactus",
+                "ivy",
+                "lily",
+                "orchid",
+                "sunflower"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Trees & Parts",
+          "sets": [
+            {
+              "words": [
+                "oak",
+                "pine",
+                "maple",
+                "root",
+                "stem",
+                "leaf",
+                "branch",
+                "seed",
+                "blossom",
+                "forest"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "nativity": {
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Nativity Scene",
+          "sets": [
+            {
+              "words": [
+                "star",
+                "stable",
+                "manger",
+                "shepherd",
+                "angel",
+                "donkey",
+                "camel",
+                "gift",
+                "myrrh"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Nativity Story",
+          "sets": [
+            {
+              "words": [
+                "mary",
+                "joseph",
+                "jesus",
+                "bethlehem",
+                "inn",
+                "journey",
+                "prophecy",
+                "miracle"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "languages": {
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "World Languages",
+          "sets": [
+            {
+              "words": [
+                "english",
+                "spanish",
+                "french",
+                "german",
+                "italian",
+                "chinese",
+                "arabic",
+                "russian",
+                "korean",
+                "polish"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Language Terms",
+          "sets": [
+            {
+              "words": [
+                "grammar",
+                "dialect",
+                "accent",
+                "fluent",
+                "translate",
+                "vocabulary",
+                "phrase",
+                "alphabet",
+                "syntax"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "globalcities": {
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Cities A-M",
+          "sets": [
+            {
+              "words": [
+                "london",
+                "paris",
+                "tokyo",
+                "cairo",
+                "berlin",
+                "madrid",
+                "dublin",
+                "lisbon",
+                "moscow"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Cities N-Z",
+          "sets": [
+            {
+              "words": [
+                "rome",
+                "vienna",
+                "prague",
+                "athens",
+                "sydney",
+                "toronto",
+                "seoul",
+                "oslo",
+                "warsaw"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "fitness": {
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Workouts",
+          "sets": [
+            {
+              "words": [
+                "squat",
+                "lunge",
+                "plank",
+                "cardio",
+                "pushup",
+                "situp",
+                "burpee",
+                "stretch",
+                "sprint"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Gear & Goals",
+          "sets": [
+            {
+              "words": [
+                "treadmill",
+                "dumbbell",
+                "barbell",
+                "yoga",
+                "pilates",
+                "workout",
+                "muscle",
+                "endurance",
+                "strength"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "money": {
+      "subcategories": [
+        {
+          "id": "a",
+          "name": "Currency",
+          "sets": [
+            {
+              "words": [
+                "dollar",
+                "euro",
+                "pound",
+                "yen",
+                "peso",
+                "rupee",
+                "coin",
+                "cash",
+                "wallet",
+                "wage"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "name": "Finance Terms",
+          "sets": [
+            {
+              "words": [
+                "bank",
+                "budget",
+                "savings",
+                "invest",
+                "credit",
+                "debit",
+                "loan",
+                "interest",
+                "profit",
+                "tax"
+              ]
+            }
+          ]
+        }
       ]
     }
   }
