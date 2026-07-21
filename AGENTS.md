@@ -71,7 +71,13 @@ The pause/start UI (`#pause-overlay`, `.paused` classes on `#board-wrap`/`#word-
 
 If you add new persisted fields, update both the save (`saveState`/`saveStats`) and load (`loadState`/`loadStats`) functions, and give the load side a sane default so old saved data (missing the new field) doesn't break — `loadStats` already does this per-field.
 
-## Conventions
+## Responsive layout (portrait vs. landscape)
+
+Portrait (and narrow/short landscape) stacks `#board-column` (board + message) above `.word-list`, same as always. On wide landscape viewports (`@media (orientation: landscape) and (min-width: 700px)`, the width gate exists so short landscape phones — little vertical room, not much width either — stay in the stacked layout instead of squeezing everything sideways), `main` switches to a row: board on one side, `.word-list` as a scrollable side column on the other. `#board-wrap`'s width formula also switches from `min(92vw, 520px)` to `min(70vh, 480px)` in that mode, since height is now the constraining dimension, not width.
+
+**This media query block lives at the very end of `style.css`, after every rule it overrides — keep it there.** `#board-wrap` and `.word-list` both have unconditional base rules earlier in the file that set the same properties (`width`, `flex-direction`). CSS resolves equal-specificity conflicts by *source order*, not by "media query beats plain rule" — a base rule appearing later in the file wins over an earlier media-query override for the same selector/property, media query match or not. This shipped broken once already (the landscape layout silently no-op'd, board rendered at the wrong width and pushed off-screen) before being moved down; don't move it back up "for readability" without re-testing at a landscape viewport width.
+
+Also note: `.word-list`'s base rule sets `flex-wrap: wrap`. The landscape override sets `flex-direction: column` but must also set `flex-wrap: nowrap` — `column` + inherited `wrap` together, once content exceeds `max-height`, wrap into *additional columns* instead of scrolling one column, which silently broke the side-list layout the same way (chips overflowing sideways in pairs) even after the source-order fix above.
 
 - No comments explaining *what* code does — only *why*, when non-obvious (see existing sparse comments as the bar).
 - No build tooling, no dependencies. Keep it that way unless explicitly asked to add a bundler/framework.
