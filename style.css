@@ -378,6 +378,11 @@ main {
   color: #fff;
 }
 
+.cell.bonus {
+  background: var(--accent);
+  color: #1a1a1b;
+}
+
 .cell.word-color-0 { background: var(--word-0); }
 .cell.word-color-1 { background: var(--word-1); }
 .cell.word-color-2 { background: var(--word-2); }
@@ -443,6 +448,33 @@ main {
   color: #fff;
   text-decoration: line-through;
   opacity: 0.85;
+}
+
+.bonus-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.bonus-list.hidden {
+  display: none;
+}
+
+.bonus-chip {
+  background: var(--accent);
+  color: #1a1a1b;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.bonus-chip::before {
+  content: "★ ";
 }
 
 .word-chip.word-color-0 { background: var(--word-0); }

@@ -51,6 +51,8 @@
   let gridSize = 0;
   let targetWords = [];
   let found = []; // [{ word, cells: [[r,c], ...] }]
+  let bonusFound = []; // [{ word, cells: [[r,c], ...] }] — see checkMatch()/computeBonusPool()
+  let bonusPool = new Set(); // words this puzzle instance will accept as bonus finds, see computeBonusPool()
   let selection = []; // [[r,c], ...]
   let direction = null; // [dr, dc], locked once selection.length >= 2
   let gameOver = false;
@@ -69,6 +71,7 @@
   const badgeLayerEl = document.getElementById("badge-layer");
   const messageEl = document.getElementById("message");
   const wordListEl = document.getElementById("word-list");
+  const bonusListEl = document.getElementById("bonus-list");
   const foundBadgeEl = document.getElementById("found-badge");
   const levelBadgeEl = document.getElementById("level-badge");
   const timerEl = document.getElementById("timer");
@@ -137,6 +140,22 @@
     const data = await res.json();
     WORDS = data.categories;
     messageEl.textContent = "";
+  }
+
+  // Every word already authored for this category (across all its subcategories/sets) that ISN'T
+  // one of this puzzle's targetWords. Short (3-4 letter) words from the category's other sets
+  // often turn up by coincidence in the grid's filler letters or crossing points, so a player can
+  // still get credit for spotting one — without inventing a separate bonus dictionary, since the
+  // category's own curated content already has plenty of short words (see AGENTS.md).
+  function computeBonusPool(categoryId, excludeWords) {
+    const cat = WORDS[categoryId];
+    const all = new Set();
+    const sourceSets = cat && cat.subcategories
+      ? cat.subcategories.flatMap((sub) => sub.sets)
+      : (cat && cat.sets) || [];
+    for (const set of sourceSets) for (const w of set.words) all.add(w);
+    for (const w of excludeWords) all.delete(w);
+    return all;
   }
 
   function randomInt(n) {
@@ -289,6 +308,8 @@
     gridSize = built.size;
     targetWords = built.targetWords;
     found = [];
+    bonusFound = [];
+    bonusPool = computeBonusPool(category, targetWords);
     selection = [];
     direction = null;
     gameOver = false;
@@ -303,6 +324,7 @@
     incrementPlayedStat();
     renderBoard();
     renderWordList();
+    renderBonusList();
     updateFoundBadge();
     updateLevelBadge();
     saveState();
@@ -464,6 +486,10 @@
     return found.filter((f) => f.cells.some(([fr, fc]) => fr === r && fc === c)).map((f) => f.word);
   }
 
+  function bonusWordsCoveringCell(r, c) {
+    return bonusFound.some((f) => f.cells.some(([fr, fc]) => fr === r && fc === c));
+  }
+
   function handleCellTap(r, c) {
     // Taps are only reachable once the "ready to play"/pause overlay has been dismissed via
     // togglePause(), which is what starts the timer now — no separate "first tap starts it" path.
@@ -511,18 +537,28 @@
   function checkMatch() {
     if (selection.length < 2) return;
     const text = selectedWord();
-    const alreadyFound = found.some((f) => f.word === text);
-    if (alreadyFound || !targetWords.includes(text)) return;
 
-    found.push({ word: text, cells: selection });
-    selection = [];
-    direction = null;
-    renderBoard();
-    renderWordList();
-    updateFoundBadge();
+    if (targetWords.includes(text)) {
+      if (found.some((f) => f.word === text)) return; // already claimed, not a fresh match
+      found.push({ word: text, cells: selection });
+      selection = [];
+      direction = null;
+      renderBoard();
+      renderWordList();
+      updateFoundBadge();
+      if (found.length === targetWords.length) finishPuzzle();
+      return;
+    }
 
-    if (found.length === targetWords.length) {
-      finishPuzzle();
+    // Not one of the puzzle's official words — but if it's a word from this category's own
+    // pool that just wasn't picked for this puzzle (bonusPool), give credit for spotting it too.
+    if (bonusPool.has(text) && !bonusFound.some((f) => f.word === text)) {
+      bonusFound.push({ word: text, cells: selection });
+      selection = [];
+      direction = null;
+      renderBoard();
+      renderBonusList();
+      recordBonusFound();
     }
   }
 
@@ -631,6 +667,10 @@
           cell.classList.add("found");
           const [a, b] = coveringWords;
           cell.style.background = `linear-gradient(135deg, var(--word-${wordColorIndex(a)}) 50%, var(--word-${wordColorIndex(b)}) 50%)`;
+        } else if (bonusWordsCoveringCell(r, c)) {
+          // A found target word always wins the cell's color over a bonus word sharing it — bonus
+          // styling only shows where a cell belongs to a bonus find and nothing else.
+          cell.classList.add("bonus");
         }
         cell.addEventListener("click", () => handleCellTap(r, c));
         boardEl.appendChild(cell);
@@ -691,6 +731,18 @@
     });
   }
 
+  function renderBonusList() {
+    bonusListEl.innerHTML = "";
+    bonusListEl.classList.toggle("hidden", bonusFound.length === 0);
+    bonusFound.forEach(({ word }) => {
+      const item = document.createElement("span");
+      item.className = "word-chip bonus-chip";
+      item.textContent = word;
+      item.setAttribute("role", "listitem");
+      bonusListEl.appendChild(item);
+    });
+  }
+
   function updateFoundBadge() {
     foundBadgeEl.textContent = t("wordsFoundOf", found.length, targetWords.length);
   }
@@ -709,6 +761,7 @@
       grid,
       targetWords,
       found,
+      bonusFound,
       gameOver,
       statsRecorded,
       elapsedMsAtSave: elapsedMs(),
@@ -738,6 +791,8 @@
     gridSize = state.size || grid.length;
     targetWords = state.targetWords;
     found = Array.isArray(state.found) ? state.found : [];
+    bonusFound = Array.isArray(state.bonusFound) ? state.bonusFound : [];
+    bonusPool = computeBonusPool(currentCategory, targetWords);
     gameOver = Boolean(state.gameOver);
     statsRecorded = Boolean(state.statsRecorded);
     selection = [];
@@ -754,6 +809,7 @@
 
     renderBoard();
     renderWordList();
+    renderBonusList();
     updateFoundBadge();
     updateLevelBadge();
     setPaused(Boolean(state.wasPaused) && !gameOver);
@@ -764,7 +820,7 @@
   }
 
   function defaultStats() {
-    return { played: 0, completed: 0, wordsFound: 0, bestTimes: { easy: null, moderate: null, hard: null } };
+    return { played: 0, completed: 0, wordsFound: 0, bonusWordsFound: 0, bestTimes: { easy: null, moderate: null, hard: null } };
   }
 
   function loadStats() {
@@ -776,6 +832,7 @@
         played: parsed.played || 0,
         completed: parsed.completed || 0,
         wordsFound: parsed.wordsFound || 0,
+        bonusWordsFound: parsed.bonusWordsFound || 0,
         bestTimes: {
           easy: parsed.bestTimes?.easy ?? null,
           moderate: parsed.bestTimes?.moderate ?? null,
@@ -806,6 +863,15 @@
     saveStats(stats);
   }
 
+  // Bonus finds count toward stats immediately (not gated by statsRecorded/finishing the puzzle
+  // like recordCompletion) since a bonus word is its own complete little win, not part of the
+  // official completion condition.
+  function recordBonusFound() {
+    const stats = loadStats();
+    stats.bonusWordsFound += 1;
+    saveStats(stats);
+  }
+
   function renderStatsModal() {
     const stats = loadStats();
     const summaryEl = document.getElementById("stats-summary");
@@ -815,6 +881,7 @@
       [t("statPlayed"), stats.played],
       [t("statCompleted"), stats.completed],
       [t("statWordsFound"), stats.wordsFound],
+      [t("statBonusWordsFound"), stats.bonusWordsFound],
     ];
     rows.forEach(([label, value]) => {
       const row = document.createElement("div");
