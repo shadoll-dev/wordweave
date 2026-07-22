@@ -534,12 +534,27 @@
     return selection.map(([r, c]) => grid[r][c]).join("");
   }
 
+  function sameCells(a, b) {
+    if (a.length !== b.length) return false;
+    const key = (cells) => cells.map(([r, c]) => `${r},${c}`).sort().join("|");
+    return key(a) === key(b);
+  }
+
   function checkMatch() {
     if (selection.length < 2) return;
     const text = selectedWord();
 
     if (targetWords.includes(text)) {
-      if (found.some((f) => f.word === text)) return; // already claimed, not a fresh match
+      const existing = found.find((f) => f.word === text);
+      if (existing) {
+        // Same word, but is this the cell path already on record, or a *different* one? The word
+        // placer can (rarely) place a word, or a filler run can spell one, a second time elsewhere
+        // in the same grid — re-tracing the already-found path is a no-op, but tracing the *other*
+        // occurrence is a genuine extra find, worth a bonus exactly like any other coincidental word.
+        if (sameCells(existing.cells, selection)) return;
+        claimBonus(text);
+        return;
+      }
       found.push({ word: text, cells: selection });
       selection = [];
       direction = null;
@@ -552,14 +567,21 @@
 
     // Not one of the puzzle's official words — but if it's a word from this category's own
     // pool that just wasn't picked for this puzzle (bonusPool), give credit for spotting it too.
-    if (bonusPool.has(text) && !bonusFound.some((f) => f.word === text)) {
-      bonusFound.push({ word: text, cells: selection });
-      selection = [];
-      direction = null;
-      renderBoard();
-      renderBonusList();
-      recordBonusFound();
-    }
+    claimBonus(text);
+  }
+
+  // Shared by both bonus paths: a leftover category word (bonusPool), or — see checkMatch() above
+  // — a second occurrence of an already-found target word's exact text at different cells. Either
+  // way, dedupes by word text: a repeat text (whichever cells it's retraced at) only counts once.
+  function claimBonus(text) {
+    if (bonusFound.some((f) => f.word === text)) return;
+    if (!bonusPool.has(text) && !targetWords.includes(text)) return;
+    bonusFound.push({ word: text, cells: selection });
+    selection = [];
+    direction = null;
+    renderBoard();
+    renderBonusList();
+    recordBonusFound();
   }
 
   function finishPuzzle() {
