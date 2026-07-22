@@ -450,31 +450,9 @@ main {
   opacity: 0.85;
 }
 
-.bonus-list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-}
-
-.bonus-list.hidden {
-  display: none;
-}
-
-.bonus-chip {
+.word-chip.bonus-chip-found {
   background: var(--accent);
   color: #1a1a1b;
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 0.7rem;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.bonus-chip::before {
-  content: "★ ";
 }
 
 .word-chip.word-color-0 { background: var(--word-0); }
