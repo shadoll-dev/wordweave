@@ -23,10 +23,12 @@
   // (see buildPuzzle's TARGET_FILL), then clamped into this level's [minSize, maxSize] band — that
   // keeps density roughly constant (and the puzzle from going huge-and-sparse) even though word-sets
   // vary in size. wordCount is a cap, not a guarantee: a smaller set just yields fewer words.
+  // maxCrossings caps how many words are allowed to share a single cell — easy grids stay simple
+  // (two words crossing at most), harder ones allow denser, more tangled overlaps.
   const LEVEL_CONFIG = {
-    easy: { minSize: 7, maxSize: 9, wordCount: 8 },
-    moderate: { minSize: 9, maxSize: 12, wordCount: 12 },
-    hard: { minSize: 11, maxSize: 14, wordCount: 16 },
+    easy: { minSize: 7, maxSize: 9, wordCount: 8, maxCrossings: 2 },
+    moderate: { minSize: 9, maxSize: 12, wordCount: 12, maxCrossings: 3 },
+    hard: { minSize: 11, maxSize: 14, wordCount: 16, maxCrossings: 4 },
   };
   const TARGET_FILL = 0.5; // aim for ~50% of cells covered by words before overlap tightens it further
   // 8 straight-line directions; word letters always occupy adjacent cells along one of these.
@@ -161,8 +163,10 @@
   }
 
   // Checks whether `letters` fits starting at (row,col) heading (dr,dc); returns the cell path
-  // and how many of those cells already hold a matching letter (i.e. how much it crosses existing words).
-  function fitsAt(letters, row, col, dr, dc, size, g) {
+  // and how many of those cells already hold a matching letter (i.e. how much it crosses existing
+  // words). `crossCount`/`maxCrossings` cap how many words may already share a cell before this
+  // placement is rejected outright — keeps easy grids simple and hard grids allowed to tangle more.
+  function fitsAt(letters, row, col, dr, dc, size, g, crossCount, maxCrossings) {
     const cells = [];
     let overlap = 0;
     for (let i = 0; i < letters.length; i++) {
@@ -172,6 +176,7 @@
       const existing = g[r][c];
       if (existing !== null) {
         if (existing !== letters[i]) return null;
+        if (crossCount[r][c] >= maxCrossings) return null;
         overlap++;
       }
       cells.push([r, c]);
@@ -183,7 +188,7 @@
   // anchor the word through that cell (in every direction) and keep whichever placements are valid.
   // Preferring these over pure-random placement is what makes words actually interlock instead of
   // floating disconnected in a sea of filler letters.
-  function findOverlapPlacements(letters, size, g) {
+  function findOverlapPlacements(letters, size, g, crossCount, maxCrossings) {
     const results = [];
     for (let i = 0; i < letters.length; i++) {
       const letter = letters[i];
@@ -193,7 +198,7 @@
           for (const [dr, dc] of DIRECTIONS) {
             const row = r - dr * i;
             const col = c - dc * i;
-            const fit = fitsAt(letters, row, col, dr, dc, size, g);
+            const fit = fitsAt(letters, row, col, dr, dc, size, g, crossCount, maxCrossings);
             if (fit && fit.overlap > 0) results.push({ dr, dc, ...fit });
           }
         }
@@ -211,9 +216,9 @@
     return cellsA.every(([r, c]) => setB.has(`${r},${c}`));
   }
 
-  function placeWord(word, size, g, excludeCells) {
+  function placeWord(word, size, g, crossCount, maxCrossings, excludeCells) {
     const letters = Array.from(word);
-    const overlapCandidates = shuffle(findOverlapPlacements(letters, size, g)).filter(
+    const overlapCandidates = shuffle(findOverlapPlacements(letters, size, g, crossCount, maxCrossings)).filter(
       (fit) => !sameCellSet(fit.cells, excludeCells)
     );
     if (overlapCandidates.length > 0) return overlapCandidates[0];
@@ -225,7 +230,7 @@
       if (minRow > maxRow || minCol > maxCol) continue;
       const row = minRow + randomInt(maxRow - minRow + 1);
       const col = minCol + randomInt(maxCol - minCol + 1);
-      const fit = fitsAt(letters, row, col, dr, dc, size, g);
+      const fit = fitsAt(letters, row, col, dr, dc, size, g, crossCount, maxCrossings);
       if (fit && !sameCellSet(fit.cells, excludeCells)) return fit;
     }
     return null; // Never found a spot (rare) — the word is dropped from this puzzle, see AGENTS.md.
@@ -257,7 +262,7 @@
   }
 
   function buildPuzzle(category, subcategoryId, level) {
-    const { minSize, maxSize, wordCount } = LEVEL_CONFIG[level];
+    const { minSize, maxSize, wordCount, maxCrossings } = LEVEL_CONFIG[level];
     const pool = shuffle(pickWordSet(category, subcategoryId).filter((w) => Array.from(w).length <= maxSize));
     const chosen = pool.slice(0, wordCount);
 
@@ -265,6 +270,9 @@
     const size = Math.max(minSize, Math.min(maxSize, Math.ceil(Math.sqrt(totalLetters / TARGET_FILL))));
 
     const g = Array.from({ length: size }, () => Array(size).fill(null));
+    // How many words already pass through each cell — placeWord()/fitsAt() refuse to add one more
+    // once a cell hits this level's maxCrossings, so puzzles don't get more tangled than intended.
+    const crossCount = Array.from({ length: size }, () => Array(size).fill(0));
     const placedTarget = [];
     const firstPlacement = new Map(); // word -> its first-placement cells, for the bonus pass below
 
@@ -272,11 +280,12 @@
       .filter((w) => Array.from(w).length <= size)
       .sort((a, b) => Array.from(b).length - Array.from(a).length);
     for (const word of orderedChosen) {
-      const fit = placeWord(word, size, g);
+      const fit = placeWord(word, size, g, crossCount, maxCrossings);
       if (!fit) continue;
       const letters = Array.from(word);
       fit.cells.forEach(([r, c], i) => {
         g[r][c] = letters[i];
+        crossCount[r][c]++;
       });
       placedTarget.push(word);
       firstPlacement.set(word, fit.cells);
@@ -290,11 +299,12 @@
     const bonusWords = [];
     for (let i = 0; i < duplicateCount; i++) {
       const word = duplicateCandidates[i];
-      const fit = placeWord(word, size, g, firstPlacement.get(word));
+      const fit = placeWord(word, size, g, crossCount, maxCrossings, firstPlacement.get(word));
       if (!fit) continue; // no room for a second occurrence — this word just isn't a bonus this time
       const letters = Array.from(word);
       fit.cells.forEach(([r, c], i2) => {
         g[r][c] = letters[i2];
+        crossCount[r][c]++;
       });
       bonusWords.push(word);
     }
@@ -493,6 +503,16 @@
     return (idx < 0 ? 0 : idx) % WORD_COLOR_COUNT;
   }
 
+  // A cell shared by N words is split into N equal pie-slice wedges, one per word's color — works
+  // the same way for 2, 3, or 4+ crossings instead of special-casing the 2-way split.
+  function overlapGradient(colorIndexes) {
+    const step = 360 / colorIndexes.length;
+    const stops = colorIndexes
+      .map((idx, i) => `var(--word-${idx}) ${i * step}deg ${(i + 1) * step}deg`)
+      .join(", ");
+    return `conic-gradient(${stops})`;
+  }
+
   function wordsCoveringCell(r, c) {
     return found.filter((f) => f.cells.some(([fr, fc]) => fr === r && fc === c)).map((f) => f.word);
   }
@@ -679,9 +699,11 @@
         if (coveringWords.length === 1) {
           cell.classList.add("found", `word-color-${wordColorIndex(coveringWords[0])}`);
         } else if (coveringWords.length > 1) {
+          // Split the cell into as many equal wedges as words cross through it here (2, 3, 4+) —
+          // a fixed 2-way gradient used to be reused as-is for 3+ crossings, silently mislabeling a
+          // triple-crossing cell as a plain 2-way split. See AGENTS.md.
           cell.classList.add("found");
-          const [a, b] = coveringWords;
-          cell.style.background = `linear-gradient(135deg, var(--word-${wordColorIndex(a)}) 50%, var(--word-${wordColorIndex(b)}) 50%)`;
+          cell.style.background = overlapGradient(coveringWords.map(wordColorIndex));
         } else if (bonusWordsCoveringCell(r, c)) {
           // A found target word always wins the cell's color over a bonus word sharing it — bonus
           // styling only shows where a cell belongs to a bonus find and nothing else.
