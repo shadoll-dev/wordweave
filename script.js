@@ -388,8 +388,15 @@
       categorySelectModal.classList.add("hidden");
       generateNewPuzzle(categoryId, subcategoryId, wordLevel);
     };
+    // Highlight whichever category/subcategory the puzzle on screen right now is actually using,
+    // and pre-expand that category, so reopening the picker shows what's active instead of always
+    // starting fully collapsed with no indication of the current selection.
+    const isCurrentCategory = (id) => id === currentCategory;
+    const isCurrentSub = (id, subId) => isCurrentCategory(id) && currentSubcategory === subId;
+
     CATEGORIES.forEach((id) => {
       const subcats = categorySubcategories(id);
+      const isActiveCategory = isCurrentCategory(id);
 
       const row = document.createElement("div");
       row.className = "tree-row";
@@ -397,13 +404,13 @@
       const toggleBtn = document.createElement("button");
       toggleBtn.type = "button";
       toggleBtn.className = "tree-toggle";
-      toggleBtn.textContent = "▸";
-      toggleBtn.setAttribute("aria-expanded", "false");
+      toggleBtn.textContent = isActiveCategory ? "▾" : "▸";
+      toggleBtn.setAttribute("aria-expanded", String(isActiveCategory));
       toggleBtn.setAttribute("aria-label", t("expandLabel"));
 
       const labelBtn = document.createElement("button");
       labelBtn.type = "button";
-      labelBtn.className = "menu-item select-row tree-label-btn";
+      labelBtn.className = "menu-item select-row tree-label-btn" + (isActiveCategory ? " selected" : "");
       labelBtn.textContent = t(`category${capitalize(id)}`);
 
       row.appendChild(toggleBtn);
@@ -411,11 +418,11 @@
       container.appendChild(row);
 
       const subContainer = document.createElement("div");
-      subContainer.className = "tree-subcategories hidden";
+      subContainer.className = "tree-subcategories" + (isActiveCategory ? "" : " hidden");
       (subcats || []).forEach((sub) => {
         const subBtn = document.createElement("button");
         subBtn.type = "button";
-        subBtn.className = "menu-item select-row tree-sub-row";
+        subBtn.className = "menu-item select-row tree-sub-row" + (isCurrentSub(id, sub.id) ? " selected" : "");
         subBtn.textContent = sub.name;
         subBtn.addEventListener("click", () => pick(id, sub.id));
         subContainer.appendChild(subBtn);
@@ -426,7 +433,8 @@
       // topic list.
       const mixedBtn = document.createElement("button");
       mixedBtn.type = "button";
-      mixedBtn.className = "menu-item select-row tree-sub-row tree-mixed-row";
+      mixedBtn.className =
+        "menu-item select-row tree-sub-row tree-mixed-row" + (isCurrentSub(id, "mixed") ? " selected" : "");
       mixedBtn.textContent = t("allMixedLabel");
       mixedBtn.addEventListener("click", () => pick(id, "mixed"));
       subContainer.appendChild(mixedBtn);
@@ -441,6 +449,11 @@
       };
       toggleBtn.addEventListener("click", toggle);
       labelBtn.addEventListener("click", toggle);
+
+      if (isActiveCategory) {
+        // Scroll the active category into view once the modal has actually laid out.
+        requestAnimationFrame(() => row.scrollIntoView({ block: "nearest" }));
+      }
     });
 
     // A one-off convenience action, not the same thing as switching categoryMode to "random":
@@ -581,6 +594,7 @@
         direction = null;
         renderBoard();
         renderWordList();
+        updateFoundBadge();
         recordBonusFound();
       }
       return;
@@ -778,7 +792,11 @@
   }
 
   function updateFoundBadge() {
-    foundBadgeEl.textContent = t("wordsFoundOf", found.length, targetWords.length);
+    let text = t("wordsFoundOf", found.length, targetWords.length);
+    // Bonus progress rides alongside the normal count rather than replacing it — a bonus find
+    // never counts toward found.length/targetWords.length, so without this it'd be invisible here.
+    if (bonusWords.length > 0) text += ` ★${bonusFound.length}/${bonusWords.length}`;
+    foundBadgeEl.textContent = text;
   }
 
   function updateLevelBadge() {

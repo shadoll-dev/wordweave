@@ -639,6 +639,12 @@ main {
   flex: 1;
 }
 
+.tree-label-btn.selected,
+.tree-sub-row.selected {
+  background: var(--found);
+  color: #fff;
+}
+
 .tree-subcategories {
   display: flex;
   flex-direction: column;
