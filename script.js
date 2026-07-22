@@ -50,9 +50,9 @@
   let grid = [];
   let gridSize = 0;
   let targetWords = [];
-  let bonusWords = []; // 2-3 extra words placed in this same puzzle, deliberately, see buildPuzzle()
-  let found = []; // [{ word, cells: [[r,c], ...] }]
-  let bonusFound = []; // [{ word, cells: [[r,c], ...] }] — subset of bonusWords the player has found
+  let bonusWords = []; // subset of targetWords deliberately placed a 2nd time, see buildPuzzle()
+  let found = []; // [{ word, cells: [[r,c], ...] }] — first-occurrence finds
+  let bonusFound = []; // [{ word, cells: [[r,c], ...] }] — second-occurrence (bonus) finds
   let selection = []; // [[r,c], ...]
   let direction = null; // [dr, dc], locked once selection.length >= 2
   let gameOver = false;
@@ -202,9 +202,20 @@
     return results;
   }
 
-  function placeWord(word, size, g) {
+  // Same set of cells regardless of traversal order/direction — used both to stop a bonus
+  // duplicate placement from landing on the exact same cells as the word's first placement, and to
+  // tell a retrace of an already-found word apart from a genuinely different-location duplicate.
+  function sameCellSet(cellsA, cellsB) {
+    if (!cellsB || cellsA.length !== cellsB.length) return false;
+    const setB = new Set(cellsB.map(([r, c]) => `${r},${c}`));
+    return cellsA.every(([r, c]) => setB.has(`${r},${c}`));
+  }
+
+  function placeWord(word, size, g, excludeCells) {
     const letters = Array.from(word);
-    const overlapCandidates = shuffle(findOverlapPlacements(letters, size, g));
+    const overlapCandidates = shuffle(findOverlapPlacements(letters, size, g)).filter(
+      (fit) => !sameCellSet(fit.cells, excludeCells)
+    );
     if (overlapCandidates.length > 0) return overlapCandidates[0];
 
     for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS; attempt++) {
@@ -215,7 +226,7 @@
       const row = minRow + randomInt(maxRow - minRow + 1);
       const col = minCol + randomInt(maxCol - minCol + 1);
       const fit = fitsAt(letters, row, col, dr, dc, size, g);
-      if (fit) return fit;
+      if (fit && !sameCellSet(fit.cells, excludeCells)) return fit;
     }
     return null; // Never found a spot (rare) — the word is dropped from this puzzle, see AGENTS.md.
   }
@@ -249,35 +260,43 @@
     const { minSize, maxSize, wordCount } = LEVEL_CONFIG[level];
     const pool = shuffle(pickWordSet(category, subcategoryId).filter((w) => Array.from(w).length <= maxSize));
     const chosen = pool.slice(0, wordCount);
-    // 2 or 3 extra words, from whatever's left in this same pool after the required ones — always
-    // from the current game's own word list, never a separate dictionary or coincidental match.
-    // Not guaranteed to exist (a thin set/subcategory may not have any left over) or to survive
-    // placement below, same "may be dropped" caveat as the required words — see AGENTS.md.
-    const bonusChosen = pool.slice(wordCount, wordCount + 2 + randomInt(2));
-    const bonusSet = new Set(bonusChosen);
 
-    const allChosen = [...chosen, ...bonusChosen];
-    const totalLetters = allChosen.reduce((sum, w) => sum + Array.from(w).length, 0);
+    const totalLetters = chosen.reduce((sum, w) => sum + Array.from(w).length, 0);
     const size = Math.max(minSize, Math.min(maxSize, Math.ceil(Math.sqrt(totalLetters / TARGET_FILL))));
-    // A word longer than this puzzle's actual (possibly smaller-than-maxSize) grid can't be placed.
-    const fittable = allChosen.filter((w) => Array.from(w).length <= size);
-    // Longer words are harder to fit; place them first for better packing. Required and bonus
-    // words are placed through the exact same pass — a bonus word is just as "really in the grid"
-    // as a required one, not a special-cased afterthought.
-    const ordered = [...fittable].sort((a, b) => Array.from(b).length - Array.from(a).length);
 
     const g = Array.from({ length: size }, () => Array(size).fill(null));
     const placedTarget = [];
-    const placedBonus = [];
+    const firstPlacement = new Map(); // word -> its first-placement cells, for the bonus pass below
 
-    for (const word of ordered) {
+    const orderedChosen = [...chosen]
+      .filter((w) => Array.from(w).length <= size)
+      .sort((a, b) => Array.from(b).length - Array.from(a).length);
+    for (const word of orderedChosen) {
       const fit = placeWord(word, size, g);
       if (!fit) continue;
       const letters = Array.from(word);
       fit.cells.forEach(([r, c], i) => {
         g[r][c] = letters[i];
       });
-      (bonusSet.has(word) ? placedBonus : placedTarget).push(word);
+      placedTarget.push(word);
+      firstPlacement.set(word, fit.cells);
+    }
+
+    // Bonus words are not extra words to learn — they're 2 or 3 of the *already-required* words,
+    // deliberately placed a second time elsewhere in the grid. Finding that second occurrence is
+    // the bonus; the word itself was already on the list. See AGENTS.md "Bonus words".
+    const duplicateCandidates = shuffle(placedTarget);
+    const duplicateCount = Math.min(duplicateCandidates.length, 2 + randomInt(2));
+    const bonusWords = [];
+    for (let i = 0; i < duplicateCount; i++) {
+      const word = duplicateCandidates[i];
+      const fit = placeWord(word, size, g, firstPlacement.get(word));
+      if (!fit) continue; // no room for a second occurrence — this word just isn't a bonus this time
+      const letters = Array.from(word);
+      fit.cells.forEach(([r, c], i2) => {
+        g[r][c] = letters[i2];
+      });
+      bonusWords.push(word);
     }
 
     const alphabet = ALPHABETS[currentLang];
@@ -287,7 +306,7 @@
       }
     }
 
-    return { grid: g, size, targetWords: placedTarget, bonusWords: placedBonus };
+    return { grid: g, size, targetWords: placedTarget, bonusWords };
   }
 
   function generateNewPuzzle(category, subcategoryId, level) {
@@ -530,8 +549,24 @@
     if (selection.length < 2) return;
     const text = selectedWord();
 
+    const already = found.find((f) => f.word === text);
+    if (already) {
+      if (sameCellSet(already.cells, selection)) return; // retracing the same occurrence — no-op
+      // A different set of cells spelling a word already found means this is its bonus duplicate
+      // occurrence (see buildPuzzle()) — but only if this word was actually chosen as one of this
+      // puzzle's bonusWords, and only the first time it's spotted there.
+      if (bonusWords.includes(text) && !bonusFound.some((f) => f.word === text)) {
+        bonusFound.push({ word: text, cells: selection });
+        selection = [];
+        direction = null;
+        renderBoard();
+        renderWordList();
+        recordBonusFound();
+      }
+      return;
+    }
+
     if (targetWords.includes(text)) {
-      if (found.some((f) => f.word === text)) return; // already claimed, not a fresh match
       found.push({ word: text, cells: selection });
       selection = [];
       direction = null;
@@ -539,19 +574,6 @@
       renderWordList();
       updateFoundBadge();
       if (found.length === targetWords.length) finishPuzzle();
-      return;
-    }
-
-    // Not a required word — but if it's one of this puzzle's own deliberately-placed bonusWords
-    // (see buildPuzzle()), give credit for it. Bonus words are never required for the win
-    // condition (that's still exactly found.length === targetWords.length, untouched here).
-    if (bonusWords.includes(text) && !bonusFound.some((f) => f.word === text)) {
-      bonusFound.push({ word: text, cells: selection });
-      selection = [];
-      direction = null;
-      renderBoard();
-      renderWordList();
-      recordBonusFound();
     }
   }
 
@@ -717,21 +739,17 @@
     targetWords.forEach((word) => {
       const item = document.createElement("span");
       item.className = "word-chip";
-      item.textContent = word;
       item.setAttribute("role", "listitem");
-      if (found.some((f) => f.word === word)) item.classList.add("found", `word-color-${wordColorIndex(word)}`);
-      wordListEl.appendChild(item);
-    });
-    bonusWords.forEach((word) => {
-      const item = document.createElement("span");
-      item.className = "word-chip";
-      item.setAttribute("role", "listitem");
-      const isFound = bonusFound.some((f) => f.word === word);
-      if (isFound) {
+      // A word can be found normally (its first occurrence) and later, separately, found again as
+      // a bonus (its deliberately-duplicated second occurrence, see buildPuzzle()) — the star only
+      // appears once the bonus occurrence specifically has been spotted, on top of the normal find.
+      const isBonusFound = bonusFound.some((f) => f.word === word);
+      if (isBonusFound) {
         item.classList.add("found", "bonus-chip-found");
         item.textContent = `★ ${word}`;
       } else {
         item.textContent = word;
+        if (found.some((f) => f.word === word)) item.classList.add("found", `word-color-${wordColorIndex(word)}`);
       }
       wordListEl.appendChild(item);
     });
