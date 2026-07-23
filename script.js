@@ -589,10 +589,18 @@
   // a cell's bounds between events, and touch additionally keeps re-targeting events at the
   // original element unless we do this ourselves.
   function cellFromPoint(x, y) {
-    const el = document.elementFromPoint(x, y);
-    const cellEl = el && el.closest && el.closest(".cell");
-    if (!cellEl || !boardEl.contains(cellEl)) return null;
-    return [Number(cellEl.dataset.row), Number(cellEl.dataset.col)];
+    const rect = boardEl.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return null;
+    // Continuous position in cell units (e.g. 2.5 means "half way across the 3rd column"), not a
+    // DOM hit-test — elementFromPoint() would return null over #board's inter-cell gap pixels.
+    // Deliberately just the plain nearest cell, immediately, on every call — no threshold, no
+    // "wait and see" delay. Selecting on hover means the letter under the pointer right now is
+    // the one that gets applied; see handlePointerMove() for how ambiguity near a diagonal is
+    // resolved instead (by being willing to revise a provisional pick, not by delaying the pick).
+    const colF = ((x - rect.left) / rect.width) * gridSize;
+    const rowF = ((y - rect.top) / rect.height) * gridSize;
+    if (colF < 0 || colF >= gridSize || rowF < 0 || rowF >= gridSize) return null;
+    return [Math.floor(rowF), Math.floor(colF)];
   }
 
   function handlePointerDown(r, c, e) {
@@ -608,18 +616,94 @@
     // "click" handler below, exactly as it worked before drag support existed.
   }
 
+  // Pure predicate mirroring handleCellTap()'s own extend/undo rules, without mutating anything —
+  // used once a drag's direction is fully confirmed (selection.length >= 3, see handlePointerMove)
+  // to tell "the pointer reached the next real cell" apart from "the pointer's path is currently
+  // passing near/through some unrelated cell it shouldn't reset the selection over."
+  function isValidDragContinuation(r, c) {
+    const last = selection[selection.length - 1];
+    if (last[0] === r && last[1] === c) return true; // dragging back over the last cell = undo
+    const [dr, dc] = direction;
+    return last[0] + dr === r && last[1] + dc === c;
+  }
+
   function handlePointerMove(e) {
     if (dragPointerId === null || e.pointerId !== dragPointerId) return;
-    const cell = cellFromPoint(e.clientX, e.clientY);
-    if (!cell) return;
+
     if (!dragMoved) {
       dragMoved = true;
       e.preventDefault(); // once it's a real drag, stop the page from also trying to scroll
       handleCellTap(dragStartCell[0], dragStartCell[1]);
       dragLastCell = dragStartCell;
     }
+
+    const cell = cellFromPoint(e.clientX, e.clientY);
+    if (!cell) return;
     const [r, c] = cell;
-    if (dragLastCell && dragLastCell[0] === r && dragLastCell[1] === c) return; // still the same cell
+    if (dragLastCell && dragLastCell[0] === r && dragLastCell[1] === c) return; // no change
+
+    if (selection.length === 0) {
+      // A word was just completed mid-drag — checkMatch() clears selection/direction on a match,
+      // but the physical drag gesture (finger/button still down) is still active. Re-anchor right
+      // here rather than erroring out on stale state, or silently going dead for the rest of the
+      // gesture; this also means one continuous drag can find several words back-to-back.
+      dragStartCell = [r, c];
+      dragLastCell = [r, c];
+      handleCellTap(r, c);
+      return;
+    }
+
+    if (selection.length === 2) {
+      // Picking letter 2 (done, see below) and the transition into letter 3 are *both* where
+      // diagonal dragging used to break ("select by diagonal — it is impossible", a real reported
+      // bug): diagonal neighbors share only a single corner point (orthogonal neighbors share a
+      // full edge), so a diagonal drag's pixel path routinely grazes the corner of an unrelated
+      // orthogonal neighbor along the way — between letter 1 and letter 2, *and* just as easily
+      // between letter 2 and letter 3. The one rule that fixes both: once we know where we are
+      // (letter 2 chosen), only ever *apply* a hover that's unambiguously one of the few sensible
+      // next moves, and otherwise just wait for the next hover — never hard-reset over a stray
+      // in-between cell the pointer's path happened to clip.
+      const start = selection[0];
+      const last = selection[1];
+      const [dr, dc] = direction;
+      if (last[0] + dr === r && last[1] + dc === c) {
+        // Confirmed: advancing to an actual letter 3. From here this drag is fully locked (below).
+        dragLastCell = [r, c];
+        handleCellTap(r, c);
+        return;
+      }
+      if (r === start[0] && c === start[1]) {
+        handleCellTap(last[0], last[1]); // back on letter 1: undo the provisional letter 2
+        dragLastCell = [r, c];
+        return;
+      }
+      if (isAdjacent(start, [r, c]) && !(r === last[0] && c === last[1])) {
+        // A different neighbor of letter 1 than the current provisional pick — a genuine, live
+        // correction of which direction the word is going, not ambiguous corner-clip noise.
+        handleCellTap(last[0], last[1]); // undo the old provisional pick
+        handleCellTap(r, c); // apply the new one
+        dragLastCell = [r, c];
+        return;
+      }
+      return; // ambiguous — e.g. a corner clipped mid-flight to letter 3 — wait for the next hover
+    }
+
+    if (selection.length === 1) {
+      // Establishing letter 2 for the first time: apply immediately on hover if it's a genuine
+      // neighbor of letter 1; otherwise wait (same "don't reset on ambiguous noise" rule as above —
+      // there's nothing to undo yet at this stage, so simply ignoring is enough).
+      const start = selection[0];
+      if (isAdjacent(start, [r, c])) {
+        handleCellTap(r, c);
+        dragLastCell = [r, c];
+      }
+      return;
+    }
+
+    // 3+ letters selected: direction is fully confirmed. Only ever apply the one cell that's
+    // actually the next real step (or the undo-last case) — anything else the pointer's path
+    // happens to graze is ignored rather than treated as "start a fresh selection here."
+    if (!isValidDragContinuation(r, c)) return;
     dragLastCell = [r, c];
     handleCellTap(r, c);
   }
