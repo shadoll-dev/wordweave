@@ -367,6 +367,7 @@ main {
   user-select: none;
   cursor: pointer;
   padding: 0;
+  touch-action: none; /* dragging across cells to select a word must never trigger page scroll */
 }
 
 .cell.selected {

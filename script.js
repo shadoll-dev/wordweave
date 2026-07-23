@@ -57,6 +57,16 @@
   let bonusFound = []; // [{ word, cells: [[r,c], ...] }] — second-occurrence (bonus) finds
   let selection = []; // [[r,c], ...]
   let direction = null; // [dr, dc], locked once selection.length >= 2
+  // Drag-select state (mouse + touch, via Pointer Events): a press-and-drag runs the exact same
+  // extend/pop logic as individual taps, one call per newly-entered cell — see handleCellTap()'s
+  // callers below. A drag can be released partway through a word and finished off with plain taps,
+  // or vice versa; both funnel through the same selection/direction state, so neither mode is
+  // "special", they're just two ways of feeding the same input.
+  let dragPointerId = null;
+  let dragStartCell = null; // [r, c] of the cell under pointerdown, applied lazily on first move
+  let dragLastCell = null; // last cell this drag has already applied, to dedupe repeat pointermoves
+  let dragMoved = false; // true once the drag has actually left its starting cell
+  let suppressNextClick = false; // set after a real drag, so its trailing synthetic click is a no-op
   let gameOver = false;
   let statsRecorded = false;
   // Elapsed time is pausedElapsedMs (time banked from earlier segments) plus, if a segment is
@@ -574,6 +584,73 @@
     saveState();
   }
 
+  // Hit-tests the actual DOM under a pointer's current coordinates, not just the element that
+  // originally received pointerdown — needed because touch (and a fast mouse drag) can move past
+  // a cell's bounds between events, and touch additionally keeps re-targeting events at the
+  // original element unless we do this ourselves.
+  function cellFromPoint(x, y) {
+    const el = document.elementFromPoint(x, y);
+    const cellEl = el && el.closest && el.closest(".cell");
+    if (!cellEl || !boardEl.contains(cellEl)) return null;
+    return [Number(cellEl.dataset.row), Number(cellEl.dataset.col)];
+  }
+
+  function handlePointerDown(r, c, e) {
+    if (gameOver || paused) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return; // left button only
+    if (dragPointerId !== null) return; // a drag is already in progress (ignore extra touches)
+    dragPointerId = e.pointerId;
+    dragStartCell = [r, c];
+    dragLastCell = null;
+    dragMoved = false;
+    // Applying the start cell is deferred to the first real move (see handlePointerMove) so a
+    // plain tap — pointerdown then pointerup with no movement — is left entirely to the normal
+    // "click" handler below, exactly as it worked before drag support existed.
+  }
+
+  function handlePointerMove(e) {
+    if (dragPointerId === null || e.pointerId !== dragPointerId) return;
+    const cell = cellFromPoint(e.clientX, e.clientY);
+    if (!cell) return;
+    if (!dragMoved) {
+      dragMoved = true;
+      e.preventDefault(); // once it's a real drag, stop the page from also trying to scroll
+      handleCellTap(dragStartCell[0], dragStartCell[1]);
+      dragLastCell = dragStartCell;
+    }
+    const [r, c] = cell;
+    if (dragLastCell && dragLastCell[0] === r && dragLastCell[1] === c) return; // still the same cell
+    dragLastCell = [r, c];
+    handleCellTap(r, c);
+  }
+
+  function handlePointerUp(e) {
+    if (dragPointerId === null || e.pointerId !== dragPointerId) return;
+    dragPointerId = null;
+    if (!dragMoved) {
+      // Never left the starting cell: a plain tap. Apply it right here rather than waiting for the
+      // browser's own trailing "click" — whether/when that fires (and whether it's suppressed at
+      // all) varies by pointer type and gesture, so it can't be the thing we depend on for the
+      // actual game logic; see AGENTS.md.
+      handleCellTap(dragStartCell[0], dragStartCell[1]);
+    }
+    // Either the tap was just applied above, or a real drag already applied every cell it touched
+    // via handleCellTap() inside handlePointerMove — either way, a trailing "click" event (if the
+    // browser fires one at all) would just be a duplicate. The timeout is a safety net: if no click
+    // shows up (common after a real touch drag), the flag can't stay stuck and swallow a later tap.
+    suppressNextClick = true;
+    setTimeout(() => {
+      suppressNextClick = false;
+    }, 300);
+    dragStartCell = null;
+    dragLastCell = null;
+    dragMoved = false;
+  }
+
+  document.addEventListener("pointermove", handlePointerMove);
+  document.addEventListener("pointerup", handlePointerUp);
+  document.addEventListener("pointercancel", handlePointerUp);
+
   function selectedWord() {
     return selection.map(([r, c]) => grid[r][c]).join("");
   }
@@ -709,6 +786,8 @@
         cell.className = "cell";
         cell.textContent = grid[r][c];
         cell.setAttribute("role", "gridcell");
+        cell.dataset.row = r;
+        cell.dataset.col = c;
         const coveringWords = wordsCoveringCell(r, c);
         if (coveringWords.length === 1) {
           cell.classList.add("found", `word-color-${wordColorIndex(coveringWords[0])}`);
@@ -723,7 +802,14 @@
           // styling only shows where a cell belongs to a bonus find and nothing else.
           cell.classList.add("bonus");
         }
-        cell.addEventListener("click", () => handleCellTap(r, c));
+        cell.addEventListener("pointerdown", (e) => handlePointerDown(r, c, e));
+        cell.addEventListener("click", () => {
+          if (suppressNextClick) {
+            suppressNextClick = false;
+            return;
+          }
+          handleCellTap(r, c);
+        });
         boardEl.appendChild(cell);
         cellEls[r][c] = cell;
       }

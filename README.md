@@ -7,7 +7,7 @@ A word-search puzzle game — single-page, no build step, no dependencies.
 ## Features
 
 - Find every word from a themed category hidden in a grid of letters, running in any of the 8 straight-line directions (horizontal, vertical, diagonal — forwards or backwards)
-- Tap letters one at a time to trace a word — each tap adds a numbered badge showing the order you picked it in; tap the last letter again to undo it
+- Trace a word by tapping letters one at a time, or by pressing/touching and dragging straight across them (mouse and touch both work) — each one adds a numbered badge showing the order you picked it in. Drag partway and finish with taps, or the other way around; tap (or drag back onto) the last letter to undo it
 - Two words can cross through the same shared letter
 - A word is marked found automatically the instant your selection spells it — no submit button
 - **English and Ukrainian**, auto-detected from the browser's language and switchable from the "⋮" menu
