@@ -10,31 +10,37 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#5a6fd8" />
-<link rel="stylesheet" href="style.css?v=36" />
+<link rel="stylesheet" href="style.css?v=41" />
 </head>
 <body>
   <header>
-    <h1>Wordweave <span id="level-badge" class="level-badge"></span> <span id="found-badge" class="found-badge"></span></h1>
-    <div id="timer" class="timer" aria-live="off">0:00</div>
-    <button id="pause-btn" class="icon-btn" disabled aria-label="Pause" title="Pause">⏸</button>
-    <div class="header-actions">
-      <button id="help-btn" class="icon-btn" data-i18n-title="helpBtn" aria-label="How to play" title="How to play">?</button>
-      <button id="new-game-btn" class="header-btn" data-i18n="newGameBtn" data-i18n-title="newGameBtn" title="New game">New Game</button>
-      <div class="menu-wrap">
-        <button id="menu-btn" class="icon-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu" title="Menu">⋮</button>
-        <div id="menu-panel" class="menu-panel hidden">
-          <button id="stats-btn" class="menu-item" data-i18n="statsBtn">Stats</button>
-          <div class="menu-separator"></div>
-          <span class="menu-label" data-i18n="categoryLabel">Category</span>
-          <div id="category-options" class="lang-options" role="radiogroup" aria-label="Category"></div>
-          <div class="menu-separator"></div>
-          <span class="menu-label" data-i18n="difficultyLabel">Difficulty</span>
-          <div id="level-options" class="lang-options" role="radiogroup" aria-label="Difficulty"></div>
-          <div class="menu-separator"></div>
-          <span class="menu-label" data-i18n="languageLabel">Language</span>
-          <div id="lang-options" class="lang-options" role="radiogroup" aria-label="Language"></div>
+    <div class="header-row header-row-top">
+      <h1>Wordweave</h1>
+      <div class="header-actions">
+        <button id="help-btn" class="icon-btn" data-i18n-title="helpBtn" aria-label="How to play" title="How to play">?</button>
+        <button id="new-game-btn" class="header-btn" data-i18n="newGameBtn" data-i18n-title="newGameBtn" title="New game">New Game</button>
+        <div class="menu-wrap">
+          <button id="menu-btn" class="icon-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu" title="Menu">⋮</button>
+          <div id="menu-panel" class="menu-panel hidden">
+            <button id="stats-btn" class="menu-item" data-i18n="statsBtn">Stats</button>
+            <div class="menu-separator"></div>
+            <span class="menu-label" data-i18n="categoryLabel">Category</span>
+            <div id="category-options" class="lang-options" role="radiogroup" aria-label="Category"></div>
+            <div class="menu-separator"></div>
+            <span class="menu-label" data-i18n="difficultyLabel">Difficulty</span>
+            <div id="level-options" class="lang-options" role="radiogroup" aria-label="Difficulty"></div>
+            <div class="menu-separator"></div>
+            <span class="menu-label" data-i18n="languageLabel">Language</span>
+            <div id="lang-options" class="lang-options" role="radiogroup" aria-label="Language"></div>
+          </div>
         </div>
       </div>
+    </div>
+    <div class="header-row header-row-bottom">
+      <span id="level-badge" class="level-badge"></span>
+      <span id="found-badge" class="found-badge"></span>
+      <div id="timer" class="timer" aria-live="off">0:00</div>
+      <button id="pause-btn" class="icon-btn" disabled aria-label="Pause" title="Pause">⏸</button>
     </div>
   </header>
 
@@ -104,6 +110,6 @@
   </footer>
 
   <script src="i18n.js"></script>
-  <script src="script.js?v=36"></script>
+  <script src="script.js?v=39"></script>
 </body>
 </html>

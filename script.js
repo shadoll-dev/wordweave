@@ -53,6 +53,7 @@
   let gridSize = 0;
   let targetWords = [];
   let bonusWords = []; // subset of targetWords deliberately placed a 2nd time, see buildPuzzle()
+  let bonusPlacements = {}; // word -> cells of its 2nd occurrence, known even before it's found (for the end-of-game reveal)
   let found = []; // [{ word, cells: [[r,c], ...] }] — first-occurrence finds
   let bonusFound = []; // [{ word, cells: [[r,c], ...] }] — second-occurrence (bonus) finds
   let selection = []; // [[r,c], ...]
@@ -307,6 +308,7 @@
     const duplicateCandidates = shuffle(placedTarget);
     const duplicateCount = Math.min(duplicateCandidates.length, 2 + randomInt(2));
     const bonusWords = [];
+    const bonusPlacements = {};
     for (let i = 0; i < duplicateCount; i++) {
       const word = duplicateCandidates[i];
       const fit = placeWord(word, size, g, crossCount, maxCrossings, firstPlacement.get(word));
@@ -317,6 +319,10 @@
         crossCount[r][c]++;
       });
       bonusWords.push(word);
+      // Both locations, not just this one — whichever occurrence the player traces *first* gets
+      // recorded as the normal find (checkMatch() doesn't care which physical spot that is), so
+      // the "still hidden" one at game end could be either. See unfoundBonusCellKeys().
+      bonusPlacements[word] = [firstPlacement.get(word), fit.cells];
     }
 
     const alphabet = ALPHABETS[currentLang];
@@ -326,7 +332,7 @@
       }
     }
 
-    return { grid: g, size, targetWords: placedTarget, bonusWords };
+    return { grid: g, size, targetWords: placedTarget, bonusWords, bonusPlacements };
   }
 
   function generateNewPuzzle(category, subcategoryId, level) {
@@ -340,6 +346,7 @@
     gridSize = built.size;
     targetWords = built.targetWords;
     bonusWords = built.bonusWords;
+    bonusPlacements = built.bonusPlacements;
     found = [];
     bonusFound = [];
     selection = [];
@@ -526,13 +533,13 @@
     return (idx < 0 ? 0 : idx) % WORD_COLOR_COUNT;
   }
 
-  // A cell shared by N words is split into N equal pie-slice wedges, one per word's color — works
-  // the same way for 2, 3, or 4+ crossings instead of special-casing the 2-way split.
-  function overlapGradient(colorIndexes) {
-    const step = 360 / colorIndexes.length;
-    const stops = colorIndexes
-      .map((idx, i) => `var(--word-${idx}) ${i * step}deg ${(i + 1) * step}deg`)
-      .join(", ");
+  // A cell shared by N colors (found words and/or a found bonus's accent) is split into N equal
+  // pie-slice wedges — works the same way for 2, 3, or 4+ crossings instead of special-casing the
+  // 2-way split. Takes raw CSS color values/vars, not word indexes, so a bonus's accent color can
+  // be mixed in alongside found-word colors (see renderBoard()).
+  function overlapGradient(colors) {
+    const step = 360 / colors.length;
+    const stops = colors.map((color, i) => `${color} ${i * step}deg ${(i + 1) * step}deg`).join(", ");
     return `conic-gradient(${stops})`;
   }
 
@@ -542,6 +549,35 @@
 
   function bonusWordsCoveringCell(r, c) {
     return bonusFound.some((f) => f.cells.some(([fr, fc]) => fr === r && fc === c));
+  }
+
+  // Cells belonging to a bonus word's occurrence that was NOT found by the time the game ended —
+  // used to reveal where it was hiding, via a border rather than a fill (renderBoard()), so it
+  // never gets confused with an actual find.
+  // A valid single occurrence: a non-empty array of [r, c] number pairs.
+  function isCellArray(cells) {
+    return Array.isArray(cells) && cells.length > 0 && cells.every((c) => Array.isArray(c) && typeof c[0] === "number" && typeof c[1] === "number");
+  }
+
+  function unfoundBonusCellKeys() {
+    if (!gameOver) return new Set();
+    const keys = new Set();
+    for (const word of bonusWords) {
+      if (bonusFound.some((f) => f.word === word)) continue;
+      const placements = bonusPlacements[word];
+      // Guards against a stale localStorage save from before bonusPlacements stored *both*
+      // locations (it used to be a single flat cells array) — rather than crash on the old shape,
+      // just skip revealing that word; a fresh puzzle will have the current shape.
+      if (!Array.isArray(placements) || placements.length !== 2 || !placements.every(isCellArray)) continue;
+      // The win condition guarantees every target word has a `found` entry by the time the game
+      // ends, but *which* of the two physical locations that entry points to depends on which one
+      // the player happened to trace first (see buildPuzzle()) — reveal whichever of the two
+      // locations does NOT match that, not always the same fixed index.
+      const foundEntry = found.find((f) => f.word === word);
+      const hiddenCells = foundEntry ? placements.find((cells) => !sameCellSet(cells, foundEntry.cells)) : null;
+      (hiddenCells || placements[1]).forEach(([r, c]) => keys.add(`${r},${c}`));
+    }
+    return keys;
   }
 
   function handleCellTap(r, c) {
@@ -776,6 +812,7 @@
     gameOver = true;
     pauseBtn.disabled = true;
     stopTimerInterval();
+    renderBoard(); // gameOver is now true, so any unfound bonus word's hiding spot gets revealed
     const elapsed = Math.floor(elapsedMs() / 1000);
     messageEl.textContent = t("winMessage", formatTime(elapsed));
     if (!statsRecorded) {
@@ -863,6 +900,7 @@
     // #board — inherits the same --cols and its grid tracks line up with #board's exactly.
     boardWrapEl.style.setProperty("--cols", gridSize);
     cellEls = Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
+    const revealCells = unfoundBonusCellKeys();
     for (let r = 0; r < gridSize; r++) {
       for (let c = 0; c < gridSize; c++) {
         const cell = document.createElement("button");
@@ -873,19 +911,26 @@
         cell.dataset.row = r;
         cell.dataset.col = c;
         const coveringWords = wordsCoveringCell(r, c);
-        if (coveringWords.length === 1) {
-          cell.classList.add("found", `word-color-${wordColorIndex(coveringWords[0])}`);
-        } else if (coveringWords.length > 1) {
-          // Split the cell into as many equal wedges as words cross through it here (2, 3, 4+) —
-          // a fixed 2-way gradient used to be reused as-is for 3+ crossings, silently mislabeling a
+        const isBonusCell = bonusWordsCoveringCell(r, c);
+        // A cell can belong to a found word AND a found bonus's 2nd occurrence at once (they cross
+        // each other) — mix every color that applies into one wedge split instead of letting the
+        // found word's solid color silently hide the bonus contribution.
+        const colors = coveringWords.map((w) => `var(--word-${wordColorIndex(w)})`);
+        if (isBonusCell) colors.push("var(--accent)");
+        if (colors.length === 1) {
+          if (isBonusCell) {
+            cell.classList.add("bonus");
+          } else {
+            cell.classList.add("found", `word-color-${wordColorIndex(coveringWords[0])}`);
+          }
+        } else if (colors.length > 1) {
+          // Split the cell into as many equal wedges as colors apply here (2, 3, 4+) — a fixed
+          // 2-way gradient used to be reused as-is for 3+ crossings, silently mislabeling a
           // triple-crossing cell as a plain 2-way split. See AGENTS.md.
           cell.classList.add("found");
-          cell.style.background = overlapGradient(coveringWords.map(wordColorIndex));
-        } else if (bonusWordsCoveringCell(r, c)) {
-          // A found target word always wins the cell's color over a bonus word sharing it — bonus
-          // styling only shows where a cell belongs to a bonus find and nothing else.
-          cell.classList.add("bonus");
+          cell.style.background = overlapGradient(colors);
         }
+        if (revealCells.has(`${r},${c}`)) cell.classList.add("bonus-reveal");
         cell.addEventListener("pointerdown", (e) => handlePointerDown(r, c, e));
         cell.addEventListener("click", () => {
           if (suppressNextClick) {
@@ -983,6 +1028,7 @@
       grid,
       targetWords,
       bonusWords,
+      bonusPlacements,
       found,
       bonusFound,
       gameOver,
@@ -1014,6 +1060,7 @@
     gridSize = state.size || grid.length;
     targetWords = state.targetWords;
     bonusWords = Array.isArray(state.bonusWords) ? state.bonusWords : [];
+    bonusPlacements = state.bonusPlacements && typeof state.bonusPlacements === "object" ? state.bonusPlacements : {};
     found = Array.isArray(state.found) ? state.found : [];
     bonusFound = Array.isArray(state.bonusFound) ? state.bonusFound : [];
     gameOver = Boolean(state.gameOver);
