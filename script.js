@@ -1,4 +1,8 @@
 (function () {
+  // Shown in the footer as a lightweight "did this actually reload" version indicator. No git repo
+  // backs this project, so there's no commit hash to pull from — this just mirrors the cache-busting
+  // ?v= number already hand-bumped on index.html's style.css/script.js links; keep all three in sync.
+  const ASSET_VERSION = "42";
   const LANG_KEY = "wordweave-lang";
   const LEVEL_KEY = "wordweave-level";
   const CATEGORY_MODE_KEY = "wordweave-categorymode";
@@ -98,6 +102,7 @@
   const categorySelectModal = document.getElementById("category-select-modal");
   const menuBtn = document.getElementById("menu-btn");
   const menuPanel = document.getElementById("menu-panel");
+  const footerVersionEl = document.getElementById("footer-version");
 
   let cellEls = []; // cellEls[r][c] -> element
   let selectedEls = []; // elements currently showing a badge
@@ -1298,6 +1303,7 @@
   });
 
   async function init() {
+    footerVersionEl.textContent = `v${ASSET_VERSION}`;
     currentLang = detectInitialLang();
     wordLevel = detectInitialLevel();
     categoryMode = detectInitialCategoryMode();

@@ -784,6 +784,14 @@ main {
   text-decoration: underline;
 }
 
+.footer-version {
+  opacity: 0.6;
+}
+
+.footer-version::before {
+  content: " \00b7 "; /* middot separator, matches the em-space rhythm of the rest of the line */
+}
+
 /* Wide-enough landscape: word list moves to a side column instead of stacking below the board.
    Gated on min-width too so short landscape phones (little vertical room, but not much width
    either) keep the portrait stacked layout rather than squeezing everything sideways. Kept at the

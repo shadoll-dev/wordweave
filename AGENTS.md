@@ -24,6 +24,13 @@ After editing `script.js`, sanity-check syntax before assuming it works:
 node --check script.js
 ```
 
+**On any change to `script.js` or `style.css`, bump the version in all three places, kept in lockstep:**
+1. `index.html`'s `style.css?v=N`
+2. `index.html`'s `script.js?v=N`
+3. `script.js`'s `const ASSET_VERSION = "N"` (shown in the footer, see "Footer version" below)
+
+All three must carry the *same* `N` — this is what forces a plain HTTP dev server (and a real browser cache) to fetch the edited file instead of serving a stale cached copy, and the footer's `vN` is the at-a-glance way to confirm a real device or tab actually picked up the latest reload rather than an old cached one. Bump even for a change to only one of `script.js`/`style.css` — keeping all three numbers identical is the point, not tracking per-file versions separately.
+
 There are no automated tests. Verify behavior by loading the page in a browser (or headlessly via Playwright/`chromium-cli`, which this project's history has used for exactly this) and playing through the affected flow: generate a puzzle, trace a word forwards/diagonally/reversed by tapping cells in sequence, confirm badges appear in order and the last-tapped cell undoes on re-tap, confirm a completed word auto-marks found (cell highlight + struck-through chip) and updates the header's found-count badge, finish a whole puzzle and check the win message + stats, switch difficulty/language mid-puzzle (confirm modal should fire since progress exists, and the *same* category/subcategory should carry over), toggle Category to Select mode and confirm New Game opens the picker (including an Animals subcategory row and its "All Mixed" row) instead of generating directly, reload mid-puzzle (state — including category/subcategory — should resume, along with the timer), and open the Stats modal.
 
 ## Architecture
@@ -166,6 +173,8 @@ Also note: `.word-list`'s base rule sets `flex-wrap: wrap`. The landscape overri
 **If you add a new site asset** (a new language file, a new icon size, anything `index.html` references), add it to `PRECACHE_URLS` in `sw.js` too — anything not precached still works online (the fetch handler falls through to the network and caches the response opportunistically) but won't be available offline until it's been fetched at least once.
 
 Cache invalidation: `CACHE_NAME` embeds `CACHE_VERSION`, a `__CACHE_VERSION__` placeholder that `.github/workflows/pages.yml` replaces with `$GITHUB_SHA` at deploy time (`sed` step, mirrors the file-copy `cp` list — `sw.js` has to be in both). A new commit means a new cache name, and the `activate` handler deletes every other cache, so old assets can't linger. Locally the placeholder is never substituted (no CI step runs), so local testing always uses one cache named literally `wordweave-__CACHE_VERSION__` — that's expected, not a bug; it still round-trips through the real precache/fetch logic correctly, it just doesn't demonstrate the invalidation-on-deploy behavior (verify that on an actual deploy, or by manually editing the placeholder).
+
+**Footer version.** `script.js`'s `ASSET_VERSION` constant is rendered into `#footer-version` (in `init()`) as `vN` next to the site credits. There's no git repo backing this project and no build step, so there's no commit hash to show — this is a hand-maintained number that mirrors the `?v=N` cache-busting query params on `index.html`'s `style.css`/`script.js` links (see "Running & verifying changes" above). Its only purpose is letting you glance at a loaded page (especially on a real phone, where a stale service worker or browser cache is otherwise invisible) and confirm it's actually running the latest edit — bump it in step with the other two `?v=N`s, never on its own.
 
 Cache lookups use `{ ignoreSearch: true }` (`caches.match(event.request, { ignoreSearch: true })`) so a request for `style.css?v=11` still matches the precached `style.css` entry — `index.html` bumps a manual `?v=N` query param on `style.css`/`script.js` for plain-HTTP-server local dev cache-busting (see "Running & verifying changes" above), and without `ignoreSearch` those two cache-busting mechanisms would fight each other (every version bump would look like a cache miss to the service worker too, which is harmless but defeats offline-availability until a fresh network fetch happens).
 
