@@ -771,6 +771,53 @@ main {
   border-bottom: 1px solid var(--border);
 }
 
+/* Each entry needs several fields (topic, level, date, time, words, bonus), unlike a plain
+   label/value .stat-row — two lines per entry instead of one. */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.history-empty {
+  font-size: 0.9rem;
+  color: var(--border-strong);
+  margin: 12px 0;
+}
+
+.history-entry {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.history-entry-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.history-topic {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.history-entry-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 0.8rem;
+  color: var(--border-strong);
+}
+
+.history-bonus {
+  color: var(--accent);
+  font-weight: bold;
+}
+
 #site-footer {
   position: fixed;
   bottom: 0;

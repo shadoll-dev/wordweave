@@ -2,7 +2,7 @@
   // Shown in the footer as a lightweight "did this actually reload" version indicator. No git repo
   // backs this project, so there's no commit hash to pull from — this just mirrors the cache-busting
   // ?v= number already hand-bumped on index.html's style.css/script.js links; keep all three in sync.
-  const ASSET_VERSION = "44";
+  const ASSET_VERSION = "46";
   const LANG_KEY = "wordweave-lang";
   const LEVEL_KEY = "wordweave-level";
   const CATEGORY_MODE_KEY = "wordweave-categorymode";
@@ -49,7 +49,19 @@
   // puzzle's own language's full known-word vocabulary — every word in every category/subcategory,
   // not a general dictionary — so an incidental find is always something the game already "knows"
   // as a word, never a coincidence the player has to take on faith.
-  const MIN_EXTRA_WORD_LEN = 3;
+  // 3 was tried first and measured (across 500 generated puzzles) at ~4 incidental finds per
+  // puzzle, 83% of them just 3-letter noise — far too common to read as a rare surprise, and easy
+  // to mistake for "one of this puzzle's own required words got mislabeled" since so many fired at
+  // once. 5 cuts that to roughly 1 in every 9 puzzles having any at all — see MAX_EXTRA_BONUS_WORDS
+  // just below for the other half of that fix.
+  const MIN_EXTRA_WORD_LEN = 5;
+  // Caps how many wholly-extra hits a single dense grid can surface at once, even at length 5+ —
+  // a belt-and-suspenders limit alongside MIN_EXTRA_WORD_LEN, not a target to reach.
+  const MAX_EXTRA_BONUS_WORDS = 2;
+  // History is a per-finished-game log (full detail per entry), distinct from the running summary
+  // totals in wordweave-stats-${lang} — see "Game history" in AGENTS.md. Capped so localStorage
+  // can't grow unbounded over months of play; newest entries are kept, oldest silently drop off.
+  const MAX_HISTORY_ENTRIES = 50;
 
   let currentLang = "en";
   let wordLevel = "moderate";
@@ -129,6 +141,10 @@
 
   function statsKey() {
     return `wordweave-stats-${currentLang}`;
+  }
+
+  function historyKey() {
+    return `wordweave-history-${currentLang}`;
   }
 
   function detectInitialLang() {
@@ -368,8 +384,8 @@
     // anything already placed on purpose (as a target or as a duplicate) since those already have
     // their own tracked placement(s). See "Bonus words" in AGENTS.md.
     const excluded = new Set(placedTarget);
-    const extraFinds = findExtraWords(g, size, excluded);
-    for (const [word, cells] of Object.entries(extraFinds)) {
+    const extraFinds = shuffle(Object.entries(findExtraWords(g, size, excluded))).slice(0, MAX_EXTRA_BONUS_WORDS);
+    for (const [word, cells] of extraFinds) {
       bonusWords.push(word);
       bonusPlacements[word] = [cells];
     }
@@ -1130,17 +1146,26 @@
   // name comes straight from words.*.json — it's already per-language there (see AGENTS.md), not
   // a key to look up. "mixed" is the one subcategory id with no JSON entry of its own; it's the
   // synthetic "All Mixed" pool assembled by pickWordSet(), so it needs the i18n key instead.
-  function updateTopicLabel() {
-    const categoryName = t(`category${capitalize(currentCategory)}`);
-    const subcats = categorySubcategories(currentCategory);
+  // Also used for history entries (see "Game history" in AGENTS.md), which is why `category` is a
+  // parameter rather than always reading the live `currentCategory` — a history entry's category
+  // may not be the one currently loaded. Falls back to the raw id if a saved entry references a
+  // category that no longer exists (e.g. renamed/removed in a later update) rather than showing
+  // "undefined".
+  function topicDisplayName(category, subcategory) {
+    const categoryName = CATEGORIES.includes(category) ? t(`category${capitalize(category)}`) : category;
+    const subcats = categorySubcategories(category);
     let subName = null;
-    if (currentSubcategory === "mixed") {
+    if (subcategory === "mixed") {
       subName = t("allMixedLabel");
     } else if (subcats) {
-      const sub = subcats.find((s) => s.id === currentSubcategory);
+      const sub = subcats.find((s) => s.id === subcategory);
       subName = sub ? sub.name : null;
     }
-    topicLabelEl.textContent = subName ? `${categoryName} · ${subName}` : categoryName;
+    return subName ? `${categoryName} · ${subName}` : categoryName;
+  }
+
+  function updateTopicLabel() {
+    topicLabelEl.textContent = topicDisplayName(currentCategory, currentSubcategory);
   }
 
   function saveState() {
@@ -1255,6 +1280,54 @@
     const best = stats.bestTimes[wordLevel];
     if (best === null || elapsedSeconds < best) stats.bestTimes[wordLevel] = elapsedSeconds;
     saveStats(stats);
+    recordHistoryEntry(elapsedSeconds);
+  }
+
+  // One entry per *finished* game, full detail — distinct from the running summary totals above.
+  // See "Game history" in AGENTS.md. Only ever called from recordCompletion(), so it inherits that
+  // call's statsRecorded guard (once per finished puzzle, never on a reload of an already-finished
+  // one) for free — no separate guard needed here.
+  function isValidHistoryEntry(e) {
+    return (
+      e &&
+      typeof e.finishedAt === "number" &&
+      typeof e.category === "string" &&
+      LEVELS.includes(e.level) &&
+      typeof e.elapsedSeconds === "number" &&
+      typeof e.wordsFound === "number" &&
+      typeof e.bonusFound === "number" &&
+      typeof e.bonusTotal === "number"
+    );
+  }
+
+  function loadHistory() {
+    const raw = localStorage.getItem(historyKey());
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.filter(isValidHistoryEntry) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveHistory(history) {
+    localStorage.setItem(historyKey(), JSON.stringify(history));
+  }
+
+  function recordHistoryEntry(elapsedSeconds) {
+    const history = loadHistory();
+    history.unshift({
+      finishedAt: Date.now(),
+      category: currentCategory,
+      subcategory: currentSubcategory,
+      level: wordLevel,
+      elapsedSeconds,
+      wordsFound: targetWords.length,
+      bonusFound: bonusFound.length,
+      bonusTotal: bonusWords.length,
+    });
+    saveHistory(history.slice(0, MAX_HISTORY_ENTRIES));
   }
 
   // Bonus finds count toward stats immediately (not gated by statsRecorded/finishing the puzzle
@@ -1293,6 +1366,68 @@
         time === null ? t("noTimeYet") : formatTime(time)
       }</strong>`;
       bestTimesEl.appendChild(row);
+    });
+
+    renderHistoryList();
+  }
+
+  // Full per-finished-game detail, newest first — see "Game history" in AGENTS.md. A separate
+  // render step from the summary/best-times blocks above since each entry needs several fields
+  // (topic, level, date, time, words, bonus) rather than one label/value pair.
+  function renderHistoryList() {
+    const historyEl = document.getElementById("stats-history");
+    const history = loadHistory();
+    historyEl.innerHTML = "";
+    if (history.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "history-empty";
+      empty.textContent = t("noHistoryYet");
+      historyEl.appendChild(empty);
+      return;
+    }
+
+    const dateFormatter = new Intl.DateTimeFormat(currentLang === "uk" ? "uk-UA" : "en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    history.forEach((entry) => {
+      const row = document.createElement("div");
+      row.className = "history-entry";
+
+      const top = document.createElement("div");
+      top.className = "history-entry-top";
+      const topic = document.createElement("span");
+      topic.className = "history-topic";
+      topic.textContent = topicDisplayName(entry.category, entry.subcategory);
+      const level = document.createElement("span");
+      level.className = `level-badge visible ${entry.level}`;
+      level.textContent = t(`level${capitalize(entry.level)}`);
+      top.append(topic, level);
+
+      const bottom = document.createElement("div");
+      bottom.className = "history-entry-bottom";
+      const date = document.createElement("span");
+      date.className = "history-date";
+      date.textContent = dateFormatter.format(new Date(entry.finishedAt));
+      const time = document.createElement("span");
+      time.className = "history-time";
+      time.textContent = formatTime(entry.elapsedSeconds);
+      const words = document.createElement("span");
+      words.className = "history-words";
+      words.textContent = t("historyWordsFound", entry.wordsFound);
+      bottom.append(date, time, words);
+      if (entry.bonusTotal > 0) {
+        const bonus = document.createElement("span");
+        bonus.className = "history-bonus";
+        bonus.textContent = `★${entry.bonusFound}/${entry.bonusTotal}`;
+        bottom.appendChild(bonus);
+      }
+
+      row.append(top, bottom);
+      historyEl.appendChild(row);
     });
   }
 
