@@ -481,6 +481,23 @@ main {
   color: var(--found);
 }
 
+/* Groups the topic heading with the word list so `main` still only ever sees two flex children
+   (#board-column and this) — see the landscape override at the end of this file for why that
+   matters. */
+#word-list-column {
+  width: 100%;
+}
+
+.topic-label {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--border-strong);
+  text-align: center;
+}
+
 .word-list {
   display: flex;
   flex-wrap: wrap;
@@ -817,14 +834,23 @@ main {
     width: min(70vh, 480px);
   }
 
+  /* Sizing/scrolling lives on the wrapper now, not .word-list itself, so the topic-label heading
+     stays pinned above the list instead of scrolling away with the chips. */
+  #word-list-column {
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+    flex-shrink: 0;
+    max-height: min(75vh, 600px);
+    gap: 8px;
+  }
+
   .word-list {
     flex-direction: column;
     flex-wrap: nowrap; /* base rule sets wrap; column+wrap overflows into extra columns instead of scrolling */
     align-items: stretch;
-    width: 200px;
-    flex-shrink: 0;
-    max-height: min(75vh, 600px);
+    flex: 1 1 auto;
+    min-height: 0; /* lets a flex child actually shrink below its content size so overflow-y can kick in */
     overflow-y: auto;
-    padding-top: 8px;
   }
 }

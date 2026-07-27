@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#5a6fd8" />
-<link rel="stylesheet" href="style.css?v=42" />
+<link rel="stylesheet" href="style.css?v=44" />
 </head>
 <body>
   <header>
@@ -57,7 +57,10 @@
       </div>
       <p id="message" role="status" aria-live="polite"></p>
     </div>
-    <div id="word-list" class="word-list" role="list" aria-label="Words to find"></div>
+    <div id="word-list-column">
+      <h2 id="topic-label" class="topic-label"></h2>
+      <div id="word-list" class="word-list" role="list" aria-label="Words to find"></div>
+    </div>
   </main>
 
   <div id="help-modal" class="modal hidden">
@@ -111,6 +114,6 @@
   </footer>
 
   <script src="i18n.js"></script>
-  <script src="script.js?v=42"></script>
+  <script src="script.js?v=44"></script>
 </body>
 </html>

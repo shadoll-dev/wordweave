@@ -2,7 +2,7 @@
   // Shown in the footer as a lightweight "did this actually reload" version indicator. No git repo
   // backs this project, so there's no commit hash to pull from — this just mirrors the cache-busting
   // ?v= number already hand-bumped on index.html's style.css/script.js links; keep all three in sync.
-  const ASSET_VERSION = "42";
+  const ASSET_VERSION = "44";
   const LANG_KEY = "wordweave-lang";
   const LEVEL_KEY = "wordweave-level";
   const CATEGORY_MODE_KEY = "wordweave-categorymode";
@@ -45,6 +45,11 @@
     uk: "абвгґдеєжзиіїйклмнопрстуфхцчшщьюя",
   };
   const MAX_PLACEMENT_ATTEMPTS = 300;
+  // Wholly-extra bonus words (see "Bonus words" in AGENTS.md) are only ever drawn from this
+  // puzzle's own language's full known-word vocabulary — every word in every category/subcategory,
+  // not a general dictionary — so an incidental find is always something the game already "knows"
+  // as a word, never a coincidence the player has to take on faith.
+  const MIN_EXTRA_WORD_LEN = 3;
 
   let currentLang = "en";
   let wordLevel = "moderate";
@@ -52,14 +57,19 @@
   let currentSubcategory = null; // subcategory id, "mixed", or null for a category with no subcategories
   let categoryMode = "random"; // "random" | "select" — controls what New Game does, see startNewPuzzleFlow()
   let WORDS = {};
+  let ALL_KNOWN_WORDS = new Set(); // every word across every category/subcategory, current language — see buildKnownWordsIndex()
 
   let grid = [];
   let gridSize = 0;
   let targetWords = [];
-  let bonusWords = []; // subset of targetWords deliberately placed a 2nd time, see buildPuzzle()
-  let bonusPlacements = {}; // word -> cells of its 2nd occurrence, known even before it's found (for the end-of-game reveal)
+  // bonusWords is a superset of two different kinds, both awarding the exact same gold-star bonus:
+  // (1) a subset of targetWords deliberately placed a 2nd time elsewhere (bonusPlacements[word] has
+  //     2 entries), and (2) a wholly different known word spelled purely by chance in the finished
+  //     grid's filler letters (bonusPlacements[word] has 1 entry) — see "Bonus words" in AGENTS.md.
+  let bonusWords = [];
+  let bonusPlacements = {}; // word -> [cells] or [cells, cells], known even before found (for the end-of-game reveal)
   let found = []; // [{ word, cells: [[r,c], ...] }] — first-occurrence finds
-  let bonusFound = []; // [{ word, cells: [[r,c], ...] }] — second-occurrence (bonus) finds
+  let bonusFound = []; // [{ word, cells: [[r,c], ...] }] — bonus finds (either kind above)
   let selection = []; // [[r,c], ...]
   let direction = null; // [dr, dc], locked once selection.length >= 2
   // Drag-select state (mouse + touch, via Pointer Events): a press-and-drag runs the exact same
@@ -88,6 +98,7 @@
   const badgeLayerEl = document.getElementById("badge-layer");
   const messageEl = document.getElementById("message");
   const wordListEl = document.getElementById("word-list");
+  const topicLabelEl = document.getElementById("topic-label");
   const foundBadgeEl = document.getElementById("found-badge");
   const levelBadgeEl = document.getElementById("level-badge");
   const timerEl = document.getElementById("timer");
@@ -156,7 +167,20 @@
     const res = await fetch(`words.${currentLang}.json`);
     const data = await res.json();
     WORDS = data.categories;
+    ALL_KNOWN_WORDS = buildKnownWordsIndex(WORDS);
     messageEl.textContent = "";
+  }
+
+  function buildKnownWordsIndex(words) {
+    const all = new Set();
+    for (const category of Object.values(words)) {
+      for (const sub of category.subcategories) {
+        for (const set of sub.sets) {
+          for (const w of set.words) all.add(w);
+        }
+      }
+    }
+    return all;
   }
 
   function randomInt(n) {
@@ -307,9 +331,10 @@
       firstPlacement.set(word, fit.cells);
     }
 
-    // Bonus words are not extra words to learn — they're 2 or 3 of the *already-required* words,
-    // deliberately placed a second time elsewhere in the grid. Finding that second occurrence is
-    // the bonus; the word itself was already on the list. See AGENTS.md "Bonus words".
+    // Duplicate-placement bonus words: 2 or 3 of the *already-required* words, deliberately placed
+    // a second time elsewhere in the grid. Finding that second occurrence is the bonus; the word
+    // itself was already on the list. (The other kind of bonus word — wholly extra, never on the
+    // list at all — is added further down, after filler letters are in place.) See AGENTS.md "Bonus words".
     const duplicateCandidates = shuffle(placedTarget);
     const duplicateCount = Math.min(duplicateCandidates.length, 2 + randomInt(2));
     const bonusWords = [];
@@ -337,7 +362,49 @@
       }
     }
 
+    // Wholly-extra bonus words: known vocabulary that ended up spelled by pure chance once every
+    // cell (target words, bonus duplicates, and random filler alike) is in place — a second *kind*
+    // of bonus alongside the duplicate-placement one above, not a separate mechanic. Excludes
+    // anything already placed on purpose (as a target or as a duplicate) since those already have
+    // their own tracked placement(s). See "Bonus words" in AGENTS.md.
+    const excluded = new Set(placedTarget);
+    const extraFinds = findExtraWords(g, size, excluded);
+    for (const [word, cells] of Object.entries(extraFinds)) {
+      bonusWords.push(word);
+      bonusPlacements[word] = [cells];
+    }
+
     return { grid: g, size, targetWords: placedTarget, bonusWords, bonusPlacements };
+  }
+
+  // Scans every straight-line run (8 directions) in the finished grid for a word that's in this
+  // language's full known-word vocabulary (ALL_KNOWN_WORDS) but wasn't deliberately placed as one
+  // of this puzzle's target words — i.e. a word that only exists here by coincidence of the filler
+  // letters (and/or crossing target words). Extends one letter at a time per starting cell/direction
+  // so each candidate substring is checked exactly once; first occurrence found wins if the same
+  // word happens to appear more than once (arbitrary, same as bonusPlacements' "one location"
+  // simplification elsewhere in this file).
+  function findExtraWords(g, size, excludeWords) {
+    const extra = {};
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        for (const [dr, dc] of DIRECTIONS) {
+          let word = "";
+          const cells = [];
+          for (let i = 0; i < size; i++) {
+            const rr = r + dr * i;
+            const cc = c + dc * i;
+            if (rr < 0 || rr >= size || cc < 0 || cc >= size) break;
+            word += g[rr][cc];
+            cells.push([rr, cc]);
+            if (word.length < MIN_EXTRA_WORD_LEN) continue;
+            if (excludeWords.has(word) || extra[word]) continue;
+            if (ALL_KNOWN_WORDS.has(word)) extra[word] = [...cells];
+          }
+        }
+      }
+    }
+    return extra;
   }
 
   function generateNewPuzzle(category, subcategoryId, level) {
@@ -370,6 +437,7 @@
     renderWordList();
     updateFoundBadge();
     updateLevelBadge();
+    updateTopicLabel();
     saveState();
   }
 
@@ -571,9 +639,16 @@
       if (bonusFound.some((f) => f.word === word)) continue;
       const placements = bonusPlacements[word];
       // Guards against a stale localStorage save from before bonusPlacements stored *both*
-      // locations (it used to be a single flat cells array) — rather than crash on the old shape,
-      // just skip revealing that word; a fresh puzzle will have the current shape.
-      if (!Array.isArray(placements) || placements.length !== 2 || !placements.every(isCellArray)) continue;
+      // locations for the duplicate-placement kind (it used to be a single flat cells array) —
+      // rather than crash on the old shape, just skip revealing that word; a fresh puzzle will
+      // have the current shape.
+      if (!Array.isArray(placements) || placements.length === 0 || !placements.every(isCellArray)) continue;
+      // A wholly-extra bonus word (see buildPuzzle()'s findExtraWords() pass) only ever has the one
+      // placement — nothing to disambiguate, that's simply where it's hiding.
+      if (placements.length === 1) {
+        placements[0].forEach(([r, c]) => keys.add(`${r},${c}`));
+        continue;
+      }
       // The win condition guarantees every target word has a `found` entry by the time the game
       // ends, but *which* of the two physical locations that entry points to depends on which one
       // the player happened to trace first (see buildPuzzle()) — reveal whichever of the two
@@ -810,6 +885,21 @@
       renderWordList();
       updateFoundBadge();
       if (found.length === targetWords.length) finishPuzzle();
+      return;
+    }
+
+    // Not a required word at all — could still be this puzzle's wholly-extra kind of bonus word
+    // (a different known word spelled purely by chance, see buildPuzzle()'s findExtraWords() pass).
+    // Same bonus mechanic as the duplicate-placement kind above, just with no prior `found` entry
+    // to distinguish a retrace from, since it was never a target word to begin with.
+    if (bonusWords.includes(text) && !bonusFound.some((f) => f.word === text)) {
+      bonusFound.push({ word: text, cells: selection });
+      selection = [];
+      direction = null;
+      renderBoard();
+      renderWordList();
+      updateFoundBadge();
+      recordBonusFound();
     }
   }
 
@@ -917,7 +1007,7 @@
         cell.dataset.col = c;
         const coveringWords = wordsCoveringCell(r, c);
         const isBonusCell = bonusWordsCoveringCell(r, c);
-        // A cell can belong to a found word AND a found bonus's 2nd occurrence at once (they cross
+        // A cell can belong to a found word AND a found bonus's occurrence at once (they cross
         // each other) — mix every color that applies into one wedge split instead of letting the
         // found word's solid color silently hide the bonus contribution.
         const colors = coveringWords.map((w) => `var(--word-${wordColorIndex(w)})`);
@@ -1009,6 +1099,18 @@
       }
       wordListEl.appendChild(item);
     });
+    // A wholly-extra bonus word (see buildPuzzle()) isn't in targetWords at all, so it never gets a
+    // chip from the loop above — it can only ever appear here once actually found, appended after
+    // the regular list rather than occupying a slot in it from the start like a target word would.
+    bonusFound
+      .filter((f) => !targetWords.includes(f.word))
+      .forEach(({ word }) => {
+        const item = document.createElement("span");
+        item.className = "word-chip found bonus-chip-found";
+        item.setAttribute("role", "listitem");
+        item.textContent = `★ ${word}`;
+        wordListEl.appendChild(item);
+      });
   }
 
   function updateFoundBadge() {
@@ -1022,6 +1124,23 @@
   function updateLevelBadge() {
     levelBadgeEl.textContent = t(`level${capitalize(wordLevel)}`);
     levelBadgeEl.className = `level-badge visible ${wordLevel}`;
+  }
+
+  // The category name is always translated via i18n (categoryAnimals etc.), but a subcategory's
+  // name comes straight from words.*.json — it's already per-language there (see AGENTS.md), not
+  // a key to look up. "mixed" is the one subcategory id with no JSON entry of its own; it's the
+  // synthetic "All Mixed" pool assembled by pickWordSet(), so it needs the i18n key instead.
+  function updateTopicLabel() {
+    const categoryName = t(`category${capitalize(currentCategory)}`);
+    const subcats = categorySubcategories(currentCategory);
+    let subName = null;
+    if (currentSubcategory === "mixed") {
+      subName = t("allMixedLabel");
+    } else if (subcats) {
+      const sub = subcats.find((s) => s.id === currentSubcategory);
+      subName = sub ? sub.name : null;
+    }
+    topicLabelEl.textContent = subName ? `${categoryName} · ${subName}` : categoryName;
   }
 
   function saveState() {
@@ -1086,6 +1205,7 @@
     renderWordList();
     updateFoundBadge();
     updateLevelBadge();
+    updateTopicLabel();
     setPaused(Boolean(state.wasPaused) && !gameOver);
     if (gameOver) {
       messageEl.textContent = t("winMessage", formatTime(Math.floor(pausedElapsedMs / 1000)));
