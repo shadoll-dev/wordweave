@@ -2,7 +2,7 @@
   // Shown in the footer as a lightweight "did this actually reload" version indicator. No git repo
   // backs this project, so there's no commit hash to pull from — this just mirrors the cache-busting
   // ?v= number already hand-bumped on index.html's style.css/script.js links; keep all three in sync.
-  const ASSET_VERSION = "46";
+  const ASSET_VERSION = "48";
   const LANG_KEY = "wordweave-lang";
   const LEVEL_KEY = "wordweave-level";
   const CATEGORY_MODE_KEY = "wordweave-categorymode";
@@ -26,15 +26,60 @@
   // Grid size is derived per puzzle from how many letters its chosen word-set actually contributes
   // (see buildPuzzle's TARGET_FILL), then clamped into this level's [minSize, maxSize] band — that
   // keeps density roughly constant (and the puzzle from going huge-and-sparse) even though word-sets
-  // vary in size. wordCount is a cap, not a guarantee: a smaller set just yields fewer words.
+  // vary in size. `maxWords` is a cap, not a guarantee: a smaller set just yields fewer words —
+  // `fraction`/`minWords` (see computeLevelPlan below) decide how many of the *available* words this
+  // level actually asks for, scaled to the set's real size rather than always reaching for the cap.
   // maxCrossings caps how many words are allowed to share a single cell — easy grids stay simple
   // (two words crossing at most), harder ones allow denser, more tangled overlaps.
+  //
+  // Most real word-sets are far smaller than `maxWords` (7-15 words is typical, not 12 or 16) — a
+  // fixed cap alone meant moderate and hard (and sometimes easy and moderate) silently picked the
+  // *exact same* words and clamped to the *exact same* grid size for the majority of sets in the
+  // game, making two supposedly-different difficulties the literal same puzzle. `computeLevelPlan()`
+  // fixes this by scaling word count to a fraction of the available pool *and* enforcing that each
+  // level strictly exceeds the one below it (both in word count, when the pool allows it, and in grid
+  // size, always — see its comment). Don't go back to a flat `pool.slice(0, maxWords)`.
   const LEVEL_CONFIG = {
-    easy: { minSize: 7, maxSize: 9, wordCount: 8, maxCrossings: 2 },
-    moderate: { minSize: 9, maxSize: 12, wordCount: 12, maxCrossings: 3 },
-    hard: { minSize: 11, maxSize: 14, wordCount: 16, maxCrossings: 4 },
+    easy: { minSize: 7, maxSize: 9, minWords: 5, maxWords: 8, fraction: 0.6, maxCrossings: 2 },
+    moderate: { minSize: 9, maxSize: 12, minWords: 7, maxWords: 12, fraction: 0.8, maxCrossings: 3 },
+    hard: { minSize: 11, maxSize: 14, minWords: 9, maxWords: 16, fraction: 1.0, maxCrossings: 4 },
   };
   const TARGET_FILL = 0.5; // aim for ~50% of cells covered by words before overlap tightens it further
+
+  // Derives, for a given raw word pool, how many words and how large a grid *every* level should
+  // use — computed together (not independently per level) so later levels can be floored against
+  // earlier ones. Word count: `round(pool-for-this-level's-maxSize × fraction)`, clamped to
+  // [minWords, maxWords] and to the pool size, then bumped up if needed so it exceeds the previous
+  // level's count by at least 1 (capped at the pool size — a tiny set may still tie two levels'
+  // counts, e.g. a 5-word set can't yield 3 distinct growing subsets, but see below, size still
+  // differs). Grid size: the usual TARGET_FILL-based computation, clamped to [minSize, maxSize], then
+  // *always* bumped to at least the previous level's size + 1 — this is what guarantees hard is never
+  // visually the same puzzle as moderate even on a pool too small to add more words. The [minSize,
+  // maxSize] bands (7-9 / 9-12 / 11-14) are wide enough relative to each other that this floor always
+  // fits inside the next level's own band, so it never needs to break the max.
+  function computeLevelPlan(words) {
+    const plan = {};
+    let prevCount = null;
+    let prevSize = null;
+    for (const level of LEVELS) {
+      const cfg = LEVEL_CONFIG[level];
+      const pool = words.filter((w) => Array.from(w).length <= cfg.maxSize);
+      let count = Math.round(pool.length * cfg.fraction);
+      count = Math.max(cfg.minWords, Math.min(cfg.maxWords, count));
+      count = Math.min(count, pool.length);
+      if (prevCount != null) count = Math.max(count, Math.min(pool.length, prevCount + 1));
+
+      const chosen = pool.slice(0, count);
+      const totalLetters = chosen.reduce((sum, w) => sum + Array.from(w).length, 0);
+      let size = Math.max(cfg.minSize, Math.min(cfg.maxSize, Math.ceil(Math.sqrt(totalLetters / TARGET_FILL))));
+      if (prevSize != null) size = Math.max(size, prevSize + 1);
+
+      plan[level] = { pool, count, size };
+      prevCount = count;
+      prevSize = size;
+    }
+    return plan;
+  }
   // 8 straight-line directions; word letters always occupy adjacent cells along one of these.
   const DIRECTIONS = [
     [0, 1], [0, -1], [1, 0], [-1, 0],
@@ -45,19 +90,16 @@
     uk: "абвгґдеєжзиіїйклмнопрстуфхцчшщьюя",
   };
   const MAX_PLACEMENT_ATTEMPTS = 300;
-  // Wholly-extra bonus words (see "Bonus words" in AGENTS.md) are only ever drawn from this
-  // puzzle's own language's full known-word vocabulary — every word in every category/subcategory,
-  // not a general dictionary — so an incidental find is always something the game already "knows"
-  // as a word, never a coincidence the player has to take on faith.
-  // 3 was tried first and measured (across 500 generated puzzles) at ~4 incidental finds per
-  // puzzle, 83% of them just 3-letter noise — far too common to read as a rare surprise, and easy
-  // to mistake for "one of this puzzle's own required words got mislabeled" since so many fired at
-  // once. 5 cuts that to roughly 1 in every 9 puzzles having any at all — see MAX_EXTRA_BONUS_WORDS
-  // just below for the other half of that fix.
-  const MIN_EXTRA_WORD_LEN = 5;
-  // Caps how many wholly-extra hits a single dense grid can surface at once, even at length 5+ —
-  // a belt-and-suspenders limit alongside MIN_EXTRA_WORD_LEN, not a target to reach.
-  const MAX_EXTRA_BONUS_WORDS = 2;
+  // Bonus words are only ever a deliberate *second placement* of a word already on the list — see
+  // "Bonus words" in AGENTS.md. A board must never accidentally spell some other known word that
+  // isn't on the list at all: a player who traces it would get nothing, which reads as a bug, not a
+  // surprise. MIN_ACCIDENTAL_WORD_LEN/findExtraWords()/eliminateAccidentalWords() exist to detect and
+  // scrub that out of the filler letters before the puzzle is ever shown — see eliminateAccidentalWords.
+  const MIN_ACCIDENTAL_WORD_LEN = 3;
+  // Bounded retry loop for eliminateAccidentalWords() — each round only perturbs the specific cells
+  // that caused a hit, so it converges fast in practice; this is a safety cap against a pathological
+  // grid that keeps re-triggering, not a count expected to be reached.
+  const MAX_ACCIDENTAL_WORD_FIX_ATTEMPTS = 50;
   // History is a per-finished-game log (full detail per entry), distinct from the running summary
   // totals in wordweave-stats-${lang} — see "Game history" in AGENTS.md. Capped so localStorage
   // can't grow unbounded over months of play; newest entries are kept, oldest silently drop off.
@@ -317,13 +359,33 @@
     return sets.length ? sets[randomInt(sets.length)].words || [] : [];
   }
 
-  function buildPuzzle(category, subcategoryId, level) {
-    const { minSize, maxSize, wordCount, maxCrossings } = LEVEL_CONFIG[level];
-    const pool = shuffle(pickWordSet(category, subcategoryId).filter((w) => Array.from(w).length <= maxSize));
-    const chosen = pool.slice(0, wordCount);
+  // Some accidental words are formed entirely from cells that are themselves part of deliberately-
+  // placed target/bonus words crossing each other — no filler cell exists in the run for
+  // eliminateAccidentalWords() to safely change (see its comment). That's not as rare at
+  // MIN_ACCIDENTAL_WORD_LEN's low threshold as a single generation attempt's overlap pattern might
+  // suggest, since dense crossing is exactly what buildPuzzle() aims for. Rather than accept a
+  // leftover accidental word, buildPuzzle() regenerates the *whole* puzzle (fresh random word order,
+  // placement, and filler) up to MAX_PUZZLE_REGEN_ATTEMPTS times — a different placement layout very
+  // rarely reproduces the same crossing-word coincidence. Only if every attempt still has a leftover
+  // does it fall back to the last one generated, same "may be dropped/imperfect" spirit as the rest
+  // of this generator (see "Word placement" above) rather than looping indefinitely.
+  const MAX_PUZZLE_REGEN_ATTEMPTS = 15;
 
-    const totalLetters = chosen.reduce((sum, w) => sum + Array.from(w).length, 0);
-    const size = Math.max(minSize, Math.min(maxSize, Math.ceil(Math.sqrt(totalLetters / TARGET_FILL))));
+  function buildPuzzle(category, subcategoryId, level) {
+    let built = null;
+    for (let attempt = 0; attempt < MAX_PUZZLE_REGEN_ATTEMPTS; attempt++) {
+      built = buildPuzzleOnce(category, subcategoryId, level);
+      if (built.clean) break;
+    }
+    return built;
+  }
+
+  function buildPuzzleOnce(category, subcategoryId, level) {
+    const { maxCrossings } = LEVEL_CONFIG[level];
+    const rawWords = pickWordSet(category, subcategoryId);
+    const plan = computeLevelPlan(rawWords)[level];
+    const chosen = shuffle(plan.pool).slice(0, plan.count);
+    const size = plan.size;
 
     const g = Array.from({ length: size }, () => Array(size).fill(null));
     // How many words already pass through each cell — placeWord()/fitsAt() refuse to add one more
@@ -371,6 +433,25 @@
       bonusPlacements[word] = [firstPlacement.get(word), fit.cells];
     }
 
+    // Every cell holding a deliberately-placed letter (target word or bonus duplicate) is off-limits
+    // to the filler/fix passes below — only cells still `null` here are free to pick/repick a letter.
+    // wordPlacements additionally keeps these grouped *per occurrence* (not flattened into one set)
+    // — eliminateAccidentalWords()/isEmbeddedInSinglePlacement() need to know whether a hit's cells
+    // all belong to one single placed word specifically, not just "some placed word or other".
+    const protectedCells = new Set();
+    const wordPlacements = [];
+    for (const word of placedTarget) {
+      const cells = firstPlacement.get(word);
+      wordPlacements.push(cells);
+      for (const [r, c] of cells) protectedCells.add(`${r},${c}`);
+    }
+    for (const word of bonusWords) {
+      for (const occ of bonusPlacements[word]) {
+        wordPlacements.push(occ);
+        for (const [r, c] of occ) protectedCells.add(`${r},${c}`);
+      }
+    }
+
     const alphabet = ALPHABETS[currentLang];
     for (let r = 0; r < size; r++) {
       for (let c = 0; c < size; c++) {
@@ -378,19 +459,33 @@
       }
     }
 
-    // Wholly-extra bonus words: known vocabulary that ended up spelled by pure chance once every
-    // cell (target words, bonus duplicates, and random filler alike) is in place — a second *kind*
-    // of bonus alongside the duplicate-placement one above, not a separate mechanic. Excludes
-    // anything already placed on purpose (as a target or as a duplicate) since those already have
-    // their own tracked placement(s). See "Bonus words" in AGENTS.md.
-    const excluded = new Set(placedTarget);
-    const extraFinds = shuffle(Object.entries(findExtraWords(g, size, excluded))).slice(0, MAX_EXTRA_BONUS_WORDS);
-    for (const [word, cells] of extraFinds) {
-      bonusWords.push(word);
-      bonusPlacements[word] = [cells];
-    }
+    // The board must never accidentally spell a known word that isn't on this puzzle's list — a
+    // player who traces it would find nothing, which reads as a broken puzzle, not a fun surprise.
+    // Bonus words are exclusively the deliberate duplicate placements above; this pass only *removes*
+    // coincidental extra words, it never turns one into a bonus. See "Bonus words" in AGENTS.md.
+    const excludeWords = new Set(placedTarget);
+    eliminateAccidentalWords(g, size, excludeWords, protectedCells, wordPlacements);
+    const remainingHits = findExtraWords(g, size, excludeWords, MIN_ACCIDENTAL_WORD_LEN);
+    const clean = Object.entries(remainingHits).every(([, cells]) => isEmbeddedInSinglePlacement(cells, wordPlacements));
 
-    return { grid: g, size, targetWords: placedTarget, bonusWords, bonusPlacements };
+    return { grid: g, size, targetWords: placedTarget, bonusWords, bonusPlacements, clean };
+  }
+
+  // True if `cells` (an accidental-word hit) is entirely a contiguous subrange of one single
+  // deliberately-placed word's own cells (forwards or backwards along that word) — e.g. "кап" being
+  // exactly the first three letters of a required "капелюх" placed on the board. That's not a
+  // generator mistake to fix: the letters are fixed by the required word's own spelling, so no
+  // amount of re-placement or filler perturbation can ever change it, only removing/editing the word
+  // itself in words.*.json would. See "Keeping the board free of accidental words" in AGENTS.md.
+  function isEmbeddedInSinglePlacement(cells, wordPlacements) {
+    return wordPlacements.some((placement) => isConsecutiveSubrange(cells, placement) || isConsecutiveSubrange(cells, [...placement].reverse()));
+  }
+
+  function isConsecutiveSubrange(sub, full) {
+    for (let start = 0; start + sub.length <= full.length; start++) {
+      if (sub.every(([r, c], i) => full[start + i][0] === r && full[start + i][1] === c)) return true;
+    }
+    return false;
   }
 
   // Scans every straight-line run (8 directions) in the finished grid for a word that's in this
@@ -398,9 +493,9 @@
   // of this puzzle's target words — i.e. a word that only exists here by coincidence of the filler
   // letters (and/or crossing target words). Extends one letter at a time per starting cell/direction
   // so each candidate substring is checked exactly once; first occurrence found wins if the same
-  // word happens to appear more than once (arbitrary, same as bonusPlacements' "one location"
-  // simplification elsewhere in this file).
-  function findExtraWords(g, size, excludeWords) {
+  // word happens to appear more than once (arbitrary — eliminateAccidentalWords() will scrub it
+  // regardless of which occurrence's cells it's handed).
+  function findExtraWords(g, size, excludeWords, minLen) {
     const extra = {};
     for (let r = 0; r < size; r++) {
       for (let c = 0; c < size; c++) {
@@ -413,7 +508,7 @@
             if (rr < 0 || rr >= size || cc < 0 || cc >= size) break;
             word += g[rr][cc];
             cells.push([rr, cc]);
-            if (word.length < MIN_EXTRA_WORD_LEN) continue;
+            if (word.length < minLen) continue;
             if (excludeWords.has(word) || extra[word]) continue;
             if (ALL_KNOWN_WORDS.has(word)) extra[word] = [...cells];
           }
@@ -421,6 +516,73 @@
       }
     }
     return extra;
+  }
+
+  // True if any straight-line run of at least minLen letters passing through (r, c), in any of the
+  // 8 directions, spells a word in ALL_KNOWN_WORDS not in excludeWords. Scanning only the 4 axes
+  // through one cell (not the whole grid) is what makes eliminateAccidentalWords() below cheap
+  // enough to try every letter of the alphabet at a single cell.
+  function cellHasKnownWordThrough(g, size, r, c, excludeWords, minLen) {
+    for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) {
+      // Walk the full line through (r, c) along this axis (both directions), collecting every
+      // substring of at least minLen that contains (r, c).
+      let sr = r, sc = c;
+      while (sr - dr >= 0 && sr - dr < size && sc - dc >= 0 && sc - dc < size) { sr -= dr; sc -= dc; }
+      let word = "";
+      const positions = [];
+      for (let rr = sr, cc = sc; rr >= 0 && rr < size && cc >= 0 && cc < size; rr += dr, cc += dc) {
+        word += g[rr][cc];
+        positions.push([rr, cc]);
+      }
+      const targetIndex = positions.findIndex(([rr, cc]) => rr === r && cc === c);
+      for (let start = 0; start <= targetIndex; start++) {
+        for (let end = Math.max(start + minLen, targetIndex + 1); end <= word.length; end++) {
+          const sub = word.slice(start, end);
+          if (excludeWords.has(sub)) continue;
+          if (ALL_KNOWN_WORDS.has(sub)) return true;
+          const rev = Array.from(sub).reverse().join("");
+          if (!excludeWords.has(rev) && ALL_KNOWN_WORDS.has(rev)) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // The "check tool" that keeps the board free of not-on-the-list known words: repeatedly scans via
+  // findExtraWords() and, for each hit, tries every letter of the alphabet (shuffled) at one
+  // non-protected cell inside that hit's run (never a cell holding a deliberately-placed
+  // target/bonus letter) until cellHasKnownWordThrough() confirms no known word runs through that
+  // cell anymore in any direction — a much stronger fix than a single blind reroll, since the
+  // shared cross-category vocabulary (ALL_KNOWN_WORDS spans every category, not just this puzzle's)
+  // makes a 3+-letter collision common enough that "reroll and hope" rarely converges in practice.
+  // Rescans the whole grid after every round since fixing one hit can, rarely, surface another
+  // elsewhere; bounded by MAX_ACCIDENTAL_WORD_FIX_ATTEMPTS as a safety cap, not an expected count.
+  // Two cases are left as-is *for this pass* rather than forced: a hit embedded entirely within one
+  // single placed word (see isEmbeddedInSinglePlacement()) is accepted outright — no filler fix or
+  // re-placement can ever change it, only editing the word itself in words.*.json could, so
+  // buildPuzzleOnce() treats it as "clean" rather than triggering a pointless regeneration. A hit
+  // whose run is protected cells from *multiple* different placed words crossing (not embedded in
+  // just one) still counts as dirty — buildPuzzle() regenerates the whole puzzle if any of those
+  // survive, see MAX_PUZZLE_REGEN_ATTEMPTS there, since a different layout usually avoids that
+  // particular crossing coincidence.
+  function eliminateAccidentalWords(g, size, excludeWords, protectedCells, wordPlacements) {
+    const alphabet = ALPHABETS[currentLang];
+    for (let attempt = 0; attempt < MAX_ACCIDENTAL_WORD_FIX_ATTEMPTS; attempt++) {
+      const hits = findExtraWords(g, size, excludeWords, MIN_ACCIDENTAL_WORD_LEN);
+      const words = Object.keys(hits).filter((word) => !isEmbeddedInSinglePlacement(hits[word], wordPlacements));
+      if (words.length === 0) return;
+      for (const word of words) {
+        const [r, c] = hits[word].find(([rr, cc]) => !protectedCells.has(`${rr},${cc}`)) || [];
+        if (r === undefined) continue; // fully protected run — nothing safe to change, leave it
+        const original = g[r][c];
+        for (const letter of shuffle(Array.from(alphabet))) {
+          if (letter === original) continue;
+          g[r][c] = letter;
+          if (!cellHasKnownWordThrough(g, size, r, c, excludeWords, MIN_ACCIDENTAL_WORD_LEN)) break;
+          g[r][c] = original;
+        }
+      }
+    }
   }
 
   function generateNewPuzzle(category, subcategoryId, level) {
@@ -659,8 +821,10 @@
       // rather than crash on the old shape, just skip revealing that word; a fresh puzzle will
       // have the current shape.
       if (!Array.isArray(placements) || placements.length === 0 || !placements.every(isCellArray)) continue;
-      // A wholly-extra bonus word (see buildPuzzle()'s findExtraWords() pass) only ever has the one
-      // placement — nothing to disambiguate, that's simply where it's hiding.
+      // Legacy shape only: an older version of this game had a second bonus kind (a wholly-extra
+      // word never on the list, spelled purely by chance) whose bonusPlacements entry had just the
+      // one occurrence. That mechanic is gone — new puzzles never produce a 1-element entry — but a
+      // save from before the change could still have one; handle it rather than crash on it.
       if (placements.length === 1) {
         placements[0].forEach(([r, c]) => keys.add(`${r},${c}`));
         continue;
@@ -904,10 +1068,10 @@
       return;
     }
 
-    // Not a required word at all — could still be this puzzle's wholly-extra kind of bonus word
-    // (a different known word spelled purely by chance, see buildPuzzle()'s findExtraWords() pass).
-    // Same bonus mechanic as the duplicate-placement kind above, just with no prior `found` entry
-    // to distinguish a retrace from, since it was never a target word to begin with.
+    // Not a required word at all. New puzzles never have a bonusWords entry outside targetWords
+    // (bonus words are always a deliberate second placement of an already-required word — see
+    // buildPuzzle()), so this only fires for a save from before that was true. Kept so an
+    // in-progress legacy puzzle doesn't silently lose a bonus find on reload.
     if (bonusWords.includes(text) && !bonusFound.some((f) => f.word === text)) {
       bonusFound.push({ word: text, cells: selection });
       selection = [];
@@ -1115,9 +1279,9 @@
       }
       wordListEl.appendChild(item);
     });
-    // A wholly-extra bonus word (see buildPuzzle()) isn't in targetWords at all, so it never gets a
-    // chip from the loop above — it can only ever appear here once actually found, appended after
-    // the regular list rather than occupying a slot in it from the start like a target word would.
+    // Legacy shape only (see AGENTS.md "Bonus words"): an older version could produce a bonus word
+    // that was never in targetWords at all, so it never gets a chip from the loop above. New puzzles
+    // never populate bonusFound with a word outside targetWords, but a resumed old save still could.
     bonusFound
       .filter((f) => !targetWords.includes(f.word))
       .forEach(({ word }) => {

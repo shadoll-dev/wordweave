@@ -1171,7 +1171,7 @@
       "subcategories": [
         {
           "id": "a",
-          "name": "Cities A-M",
+          "name": "Cities 1",
           "sets": [
             {
               "words": [
@@ -1190,7 +1190,7 @@
         },
         {
           "id": "b",
-          "name": "Cities N-Z",
+          "name": "Cities 2",
           "sets": [
             {
               "words": [
@@ -1262,6 +1262,7 @@
                 "dollar",
                 "euro",
                 "pound",
+                "hryvnia",
                 "yen",
                 "peso",
                 "rupee",
