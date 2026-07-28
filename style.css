@@ -19,6 +19,27 @@
   --diff-easy: #4caf7d;
   --diff-moderate: #d1a92e;
   --diff-hard: #c9504a;
+
+  /* Shared geometry/timing tokens, factored out wherever a value repeated 2+ times in this file —
+     not applied to genuinely single-use values, which would just be indirection with no DRY payoff. */
+  --radius-sm: 6px; /* buttons, menu rows, pills-that-aren't-pills */
+  --radius-md: 8px; /* elevated surfaces: menu-panel, pause-overlay, modal-content */
+  --radius-pill: 999px; /* badges, word chips */
+  --duration-fast: 0.15s;
+
+  /* Text color for content sitting on top of a saturated/colored surface — a found cell, a selected
+     pill, a primary button — as opposed to --fg, which is body text on the plain --bg surface.
+     --on-accent is specifically for content on --accent (amber/gold): that surface stays light-toned
+     in both themes (see dark block below), so its readable text color doesn't need a dark-mode
+     override the way --on-color conceptually could if a saturated color ever did. */
+  --on-color: #fff;
+  --on-accent: #1a1a1b;
+
+  /* Elevated-surface (modal/popover) treatment — see "Modal look" further down for how these combine. */
+  --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 24px 60px -12px rgba(0, 0, 0, 0.45), 0 8px 20px rgba(0, 0, 0, 0.3);
+  --overlay-bg: rgba(0, 0, 0, 0.6);
+  --surface-border: rgba(0, 0, 0, 0.08);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -42,6 +63,11 @@
     --diff-easy: #3f8f6a;
     --diff-moderate: #b59f3b;
     --diff-hard: #a8433d;
+    /* Darker + more diffuse than the light-theme overlay: a plain 60%-black backdrop barely reads
+       as "dimmed" against this theme's own already-dark page background, so it needs to go darker
+       here to still visually separate the popup from the page behind it. */
+    --overlay-bg: rgba(0, 0, 0, 0.72);
+    --surface-border: rgba(255, 255, 255, 0.08);
   }
 }
 
@@ -138,11 +164,11 @@ header h1 {
   display: none;
   vertical-align: middle;
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 0.6rem;
   letter-spacing: 0.04em;
   font-weight: bold;
-  color: #fff;
+  color: var(--on-color);
   white-space: nowrap;
 }
 
@@ -191,10 +217,10 @@ header h1 {
   background: none;
   border: 1px solid var(--border-strong);
   color: var(--fg);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-weight: bold;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background var(--duration-fast) ease, border-color var(--duration-fast) ease;
 }
 
 .icon-btn:hover,
@@ -245,8 +271,8 @@ header h1 {
   overflow-y: auto;
   background: var(--bg);
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   padding: 8px;
   display: flex;
   flex-direction: column;
@@ -264,7 +290,7 @@ header h1 {
   color: var(--fg);
   text-align: left;
   padding: 8px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-weight: bold;
   font-size: 0.9rem;
@@ -300,7 +326,7 @@ header h1 {
   color: var(--fg);
   text-align: left;
   padding: 8px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-weight: bold;
   font-size: 0.85rem;
@@ -313,7 +339,7 @@ header h1 {
 .lang-option.selected {
   background: var(--found);
   border-color: var(--found);
-  color: #fff;
+  color: var(--on-color);
 }
 
 main {
@@ -374,7 +400,7 @@ main {
   justify-content: center;
   gap: 10px;
   background: var(--bg);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 2px solid var(--border-strong);
 }
 
@@ -424,16 +450,16 @@ main {
 
 .cell.selected {
   background: var(--selected);
-  color: #fff;
+  color: var(--on-color);
 }
 
 .cell.found {
-  color: #fff;
+  color: var(--on-color);
 }
 
 .cell.bonus {
   background: var(--accent);
-  color: #1a1a1b;
+  color: var(--on-accent);
 }
 
 .cell.bonus-reveal {
@@ -462,7 +488,7 @@ main {
   padding: 0 3px;
   border-radius: 50%;
   background: var(--accent);
-  color: #1a1a1b;
+  color: var(--on-accent);
   font-size: 0.6rem;
   font-weight: bold;
   display: flex;
@@ -509,7 +535,7 @@ main {
 .word-chip {
   background: var(--key-bg);
   color: var(--fg);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 5px 12px;
   font-size: 0.8rem;
   font-weight: bold;
@@ -519,14 +545,14 @@ main {
 }
 
 .word-chip.found {
-  color: #fff;
+  color: var(--on-color);
   text-decoration: line-through;
   opacity: 0.85;
 }
 
 .word-chip.bonus-chip-found {
   background: var(--accent);
-  color: #1a1a1b;
+  color: var(--on-accent);
 }
 
 .word-chip.word-color-0 { background: var(--word-0); }
@@ -538,10 +564,18 @@ main {
 .word-chip.word-color-6 { background: var(--word-6); }
 .word-chip.word-color-7 { background: var(--word-7); }
 
+/* Modal look: a darker, softly blurred backdrop (--overlay-bg — noticeably dimmer than the page's
+   own contrast, so the popup reads as the one thing in focus) behind a borderless-looking card —
+   --surface-border is a low-alpha 1px hairline rather than the old bold 2px var(--border-strong),
+   with the card's edge instead mostly defined by --shadow-lg's soft, wide spread. backdrop-filter is
+   progressive enhancement: unsupported browsers just get the plain --overlay-bg dim, no fallback
+   needed since -webkit-/unprefixed both no-op safely when absent. */
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-bg);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -556,20 +590,42 @@ main {
   position: relative;
   background: var(--bg);
   color: var(--fg);
-  padding: 24px;
-  border-radius: 8px;
-  border: 2px solid var(--border-strong);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  /* No top padding here — .modal-header supplies its own padding-top instead, so it can sit flush
+     against this element's own top edge (the actual scrollport boundary, since overflow-y:auto's
+     scrolling starts at the padding edge) and stick there. If this kept a top padding like the other
+     three sides, that padding would sit *above* .modal-header and stay in the scrollport's static
+     "always visible" region, but .modal-header's own sticky top:0 would then be offset from the
+     wrong edge — the two would visually separate as the content scrolled underneath. */
+  padding: 0 24px 24px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--shadow-lg);
   max-width: 420px;
   width: 90%;
   max-height: 85vh;
   overflow-y: auto;
-  animation: modal-in 0.15s ease;
+  animation: modal-in var(--duration-fast) ease;
 }
 
 @keyframes modal-in {
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
+}
+
+/* Keeps the title (and close button) visible while a modal's own content scrolls beneath it —
+   position: sticky against .modal-content's scrollport, opaque --bg so scrolled text doesn't show
+   through. Supplies the padding-top .modal-content itself no longer has (see there) so the header
+   sits exactly where the old all-sides padding used to put the title, then the sticky positioning
+   keeps it pinned there through a scroll instead of scrolling away with everything else. Unlike
+   .category-select-start-btn's edge-to-edge sticky footer, this doesn't need negative side margins
+   or its own border-radius — it isn't full-bleed, it's inset by .modal-content's own left/right
+   padding like any other child, so it never reaches (and doesn't need to mask) the rounded corners. */
+.modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg);
+  padding-top: 24px;
 }
 
 .modal-content h2 {
@@ -610,7 +666,7 @@ main {
 
 .btn-primary {
   background: var(--found);
-  color: white;
+  color: var(--on-color);
 }
 
 .btn-secondary {
@@ -626,7 +682,7 @@ main {
   height: 22px;
   padding: 0 4px;
   border: 1px solid var(--border-strong);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-weight: bold;
   vertical-align: middle;
 }
@@ -637,6 +693,9 @@ main {
   margin-top: 12px;
 }
 
+/* Anchors to .modal-header (its parent, position: sticky — sticky establishes a containing block
+   the same way relative does), not .modal-content directly, so it scrolls together with the sticky
+   title instead of scrolling away with the rest of the modal's content. */
 .modal-close-btn {
   position: absolute;
   top: 12px;
@@ -649,7 +708,7 @@ main {
   justify-content: center;
   background: none;
   border: 1px solid var(--border-strong);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--fg);
   cursor: pointer;
   font-size: 0.9rem;
@@ -734,7 +793,7 @@ main {
   font-size: 1.3rem;
   font-weight: bold;
   line-height: 1;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .tree-toggle:hover {
@@ -745,10 +804,21 @@ main {
   flex: 1;
 }
 
-.tree-label-btn.selected,
+/* The category label only indicates "this category is expanded and contains the pending pick" —
+   it's not itself a pick the way a subcategory/"All Mixed" row is, so it gets a muted tint (the same
+   neutral --key-bg already used for hover states) rather than the bright --found green, which is
+   reserved for .tree-sub-row.selected (a real subcategory row, or the "All Mixed" row — both
+   .tree-sub-row) so there's exactly one bright-green highlight in the tree at a time: whichever row
+   Start will actually use. Two things sharing the same bright green read as two equally "selected"
+   picks, which isn't true — only the row matters. */
+.tree-label-btn.selected {
+  background: var(--key-bg);
+  color: var(--fg);
+}
+
 .tree-sub-row.selected {
   background: var(--found);
-  color: #fff;
+  color: var(--on-color);
 }
 
 .tree-subcategories {
@@ -791,14 +861,16 @@ main {
    Deliberately its own color (--selected, the blue used for found-badge/selected cells), not
    .btn-primary's green — every segmented switch above it (difficulty, category mode) already uses
    that same green for its active pick, so a green Start button here would visually blend in as
-   "just another selected option" instead of reading as the one action that actually commits them. */
+   "just another selected option" instead of reading as the one action that actually commits them.
+   Bottom corners use --radius-md (the popup's own radius), not --radius-sm — they sit flush against
+   .modal-content's actual rounded corners, so mismatching the radius would show as a visible seam. */
 .category-select-start-btn {
   position: sticky;
   bottom: 0;
   width: calc(100% + 48px);
   margin: 16px -24px 0;
   padding: 14px 24px;
-  border-radius: 0 0 6px 6px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
   background: var(--selected);
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
 }
@@ -838,7 +910,7 @@ main {
 .history-entry {
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .history-entry-top {

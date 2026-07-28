@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#5a6fd8" />
-<link rel="stylesheet" href="style.css?v=52" />
+<link rel="stylesheet" href="style.css?v=55" />
 </head>
 <body>
   <header>
@@ -60,8 +60,10 @@
 
   <div id="help-modal" class="modal hidden">
     <div class="modal-content">
-      <button class="modal-close-btn" data-i18n-title="close" aria-label="Close" title="Close">✕</button>
-      <h2 data-i18n="helpTitle">How to Play</h2>
+      <div class="modal-header">
+        <button class="modal-close-btn" data-i18n-title="close" aria-label="Close" title="Close">✕</button>
+        <h2 data-i18n="helpTitle">How to Play</h2>
+      </div>
       <p data-i18n="helpIntro">Find every listed word hidden in the grid. Words can run in any of the 8 directions (horizontal, vertical, diagonal — forwards or backwards), but always in a straight line.</p>
       <p data-i18n="helpRule1">Tap letters one at a time, or press/touch and drag straight across them — each one adds a numbered badge showing the order you picked it in. You can drag partway through a word and finish it off with taps, or the other way around.</p>
       <p data-i18n="helpRule2">Tap (or drag back onto) the last letter you picked to undo it. Tap an unrelated letter to start a new word from there instead.</p>
@@ -76,8 +78,10 @@
 
   <div id="stats-modal" class="modal hidden">
     <div class="modal-content">
-      <button class="modal-close-btn" data-i18n-title="close" aria-label="Close" title="Close">✕</button>
-      <h2 data-i18n="statsTitle">Statistics</h2>
+      <div class="modal-header">
+        <button class="modal-close-btn" data-i18n-title="close" aria-label="Close" title="Close">✕</button>
+        <h2 data-i18n="statsTitle">Statistics</h2>
+      </div>
       <div id="stats-summary" class="stats-summary"></div>
       <h3 data-i18n="bestTimes">Best Times</h3>
       <div id="stats-best-times" class="stats-distribution"></div>
@@ -87,8 +91,10 @@
 
   <div id="history-modal" class="modal hidden">
     <div class="modal-content">
-      <button class="modal-close-btn" data-i18n-title="close" aria-label="Close" title="Close">✕</button>
-      <h2 data-i18n="historyTitle">History</h2>
+      <div class="modal-header">
+        <button class="modal-close-btn" data-i18n-title="close" aria-label="Close" title="Close">✕</button>
+        <h2 data-i18n="historyTitle">History</h2>
+      </div>
       <div id="history-entries" class="history-list"></div>
       <button id="close-history-btn" class="btn-primary" data-i18n="close">Close</button>
     </div>
@@ -96,8 +102,10 @@
 
   <div id="confirm-modal" class="modal hidden">
     <div class="modal-content">
-      <button class="modal-close-btn" data-i18n-title="close" aria-label="Close" title="Close">✕</button>
-      <h2 data-i18n="newGameTitle">New Game</h2>
+      <div class="modal-header">
+        <button class="modal-close-btn" data-i18n-title="close" aria-label="Close" title="Close">✕</button>
+        <h2 data-i18n="newGameTitle">New Game</h2>
+      </div>
       <p id="confirm-message" data-i18n="confirmNewGame">Start a new puzzle? Current progress will be lost.</p>
       <div class="modal-actions">
         <button id="confirm-cancel-btn" class="btn-secondary" data-i18n="cancel">Cancel</button>
@@ -108,8 +116,10 @@
 
   <div id="category-select-modal" class="modal hidden">
     <div class="modal-content select-modal-content">
-      <button class="modal-close-btn" data-i18n-title="close" aria-label="Close" title="Close">✕</button>
-      <h2 id="category-select-title">Choose Category and Difficulty</h2>
+      <div class="modal-header">
+        <button class="modal-close-btn" data-i18n-title="close" aria-label="Close" title="Close">✕</button>
+        <h2 id="category-select-title">Choose Category and Difficulty</h2>
+      </div>
       <span class="menu-label" data-i18n="difficultyLabel">Difficulty</span>
       <div id="category-select-level-options" class="lang-options select-level-options" role="radiogroup" aria-label="Difficulty"></div>
       <span class="menu-label" data-i18n="categoryLabel">Category</span>
@@ -126,6 +136,6 @@
   </footer>
 
   <script src="i18n.js"></script>
-  <script src="script.js?v=52"></script>
+  <script src="script.js?v=55"></script>
 </body>
 </html>
