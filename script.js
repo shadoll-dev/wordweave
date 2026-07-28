@@ -2,7 +2,7 @@
   // Shown in the footer as a lightweight "did this actually reload" version indicator. No git repo
   // backs this project, so there's no commit hash to pull from — this just mirrors the cache-busting
   // ?v= number already hand-bumped on index.html's style.css/script.js links; keep all three in sync.
-  const ASSET_VERSION = "55";
+  const ASSET_VERSION = "56";
   const LANG_KEY = "wordweave-lang";
   const LEVEL_KEY = "wordweave-level";
   const CATEGORY_MODE_KEY = "wordweave-categorymode";
