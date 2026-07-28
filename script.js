@@ -2,7 +2,7 @@
   // Shown in the footer as a lightweight "did this actually reload" version indicator. No git repo
   // backs this project, so there's no commit hash to pull from — this just mirrors the cache-busting
   // ?v= number already hand-bumped on index.html's style.css/script.js links; keep all three in sync.
-  const ASSET_VERSION = "48";
+  const ASSET_VERSION = "52";
   const LANG_KEY = "wordweave-lang";
   const LEVEL_KEY = "wordweave-level";
   const CATEGORY_MODE_KEY = "wordweave-categorymode";
@@ -109,7 +109,12 @@
   let wordLevel = "moderate";
   let currentCategory = "animals";
   let currentSubcategory = null; // subcategory id, "mixed", or null for a category with no subcategories
-  let categoryMode = "random"; // "random" | "select" — controls what New Game does, see startNewPuzzleFlow()
+  let categoryMode = "random"; // "random" | "select" — which of the New Game popup's two switch options is active
+  // The New Game popup's in-progress pick, separate from currentCategory/currentSubcategory: tapping
+  // a category-tree row only updates this (moves the highlight), it doesn't generate anything —
+  // Start is what actually commits it via generateNewPuzzle(). Reset fresh every time the popup opens
+  // (see openCategorySelectModal()) so a previous, uncommitted pick never leaks into a later session.
+  let pendingSelection = { category: null, subcategory: null };
   let WORDS = {};
   let ALL_KNOWN_WORDS = new Set(); // every word across every category/subcategory, current language — see buildKnownWordsIndex()
 
@@ -163,6 +168,7 @@
   const resumeBtn = document.getElementById("resume-btn");
   const helpModal = document.getElementById("help-modal");
   const statsModal = document.getElementById("stats-modal");
+  const historyModal = document.getElementById("history-modal");
   const confirmModal = document.getElementById("confirm-modal");
   const categorySelectModal = document.getElementById("category-select-modal");
   const menuBtn = document.getElementById("menu-btn");
@@ -628,43 +634,39 @@
     return { category, subcategory: options[randomInt(options.length)] };
   }
 
-  // What "New Game" (and a fresh app load with no saved puzzle) actually does depends on
-  // categoryMode: "random" picks immediately, "select" opens the picker and waits for a tap —
-  // generateNewPuzzle() only runs once a category (and subcategory, if any) is actually chosen.
+  // "New Game" (and a fresh app load with no saved puzzle) always opens the popup now — nothing
+  // generates until Start is tapped inside it (see category-select-start-btn's handler below).
+  // Difficulty and category mode both live only in this popup (see openCategorySelectModal()).
   function startNewPuzzleFlow() {
-    if (categoryMode === "select") {
-      openCategorySelectModal();
-    } else {
-      const { category, subcategory } = pickRandomCategoryAndSubcategory();
-      generateNewPuzzle(category, subcategory, wordLevel);
-    }
+    openCategorySelectModal();
   }
 
   // A single-screen tree, not a second "drill in" screen: navigating to a whole new list (even
   // with a Back row) read as an extra window bolted on. Each category is one row with two
-  // independent click targets: tapping the *label* immediately starts an "All Mixed" puzzle for
-  // that category (the common case — most people don't care which specific topic they get);
+  // independent click targets: tapping the *label* immediately marks that category's "All Mixed"
+  // as the pending pick (the common case — most people don't care which specific topic they get);
   // tapping the separate ▸ toggle expands/collapses that category's topics inline, indented
   // underneath, without picking anything or leaving the screen. Every category has subcategories
   // now (see AGENTS.md), so every row gets a toggle — no branching for a topic-less category.
-  // Reads wordLevel fresh at pick time (not a captured param) so the difficulty picker duplicated
-  // at the top of this same modal (see renderCategorySelectDifficulty()) can change it mid-picker.
+  // Only rendered/visible while categoryMode is "select" — see openCategorySelectModal().
+  // Reads wordLevel fresh at pick time (not a captured param) so the difficulty picker at the top
+  // of this same modal (see renderCategorySelectDifficulty()) can change it mid-picker.
   function renderCategoryTree() {
     const container = document.getElementById("category-select-list");
     container.innerHTML = "";
+    // Tapping a row only moves the pending pick and re-renders the highlight — it does NOT
+    // generate anything. Only category-select-start-btn's click handler ever calls
+    // generateNewPuzzle(), reading pendingSelection at that point.
     const pick = (categoryId, subcategoryId) => {
-      categorySelectModal.classList.add("hidden");
-      generateNewPuzzle(categoryId, subcategoryId, wordLevel);
+      pendingSelection = { category: categoryId, subcategory: subcategoryId };
+      renderCategoryTree();
     };
-    // Highlight whichever category/subcategory the puzzle on screen right now is actually using,
-    // and pre-expand that category, so reopening the picker shows what's active instead of always
-    // starting fully collapsed with no indication of the current selection.
-    const isCurrentCategory = (id) => id === currentCategory;
-    const isCurrentSub = (id, subId) => isCurrentCategory(id) && currentSubcategory === subId;
+    const isPendingCategory = (id) => id === pendingSelection.category;
+    const isPendingSub = (id, subId) => isPendingCategory(id) && pendingSelection.subcategory === subId;
 
     CATEGORIES.forEach((id) => {
       const subcats = categorySubcategories(id);
-      const isActiveCategory = isCurrentCategory(id);
+      const isActiveCategory = isPendingCategory(id);
 
       const row = document.createElement("div");
       row.className = "tree-row";
@@ -690,19 +692,19 @@
       (subcats || []).forEach((sub) => {
         const subBtn = document.createElement("button");
         subBtn.type = "button";
-        subBtn.className = "menu-item select-row tree-sub-row" + (isCurrentSub(id, sub.id) ? " selected" : "");
+        subBtn.className = "menu-item select-row tree-sub-row" + (isPendingSub(id, sub.id) ? " selected" : "");
         subBtn.textContent = sub.name;
         subBtn.addEventListener("click", () => pick(id, sub.id));
         subContainer.appendChild(subBtn);
       });
       // "All Mixed" is a subcategory-list row like any other, not a shortcut hidden behind the
       // category label — the label's only job now is expand/collapse, same as the ▸ toggle, so
-      // tapping a category never surprises someone by starting a puzzle before they've seen the
-      // topic list.
+      // tapping a category never surprises someone by moving the pending pick before they've seen
+      // the topic list.
       const mixedBtn = document.createElement("button");
       mixedBtn.type = "button";
       mixedBtn.className =
-        "menu-item select-row tree-sub-row tree-mixed-row" + (isCurrentSub(id, "mixed") ? " selected" : "");
+        "menu-item select-row tree-sub-row tree-mixed-row" + (isPendingSub(id, "mixed") ? " selected" : "");
       mixedBtn.textContent = t("allMixedLabel");
       mixedBtn.addEventListener("click", () => pick(id, "mixed"));
       subContainer.appendChild(mixedBtn);
@@ -723,25 +725,10 @@
         requestAnimationFrame(() => row.scrollIntoView({ block: "nearest" }));
       }
     });
-
-    // A one-off convenience action, not the same thing as switching categoryMode to "random":
-    // this picks once, right now, from within the Select picker, and leaves categoryMode alone —
-    // the next time New Game runs, Select mode still opens this same picker rather than silently
-    // becoming Random mode because someone used this row once.
-    const randomRow = document.createElement("button");
-    randomRow.type = "button";
-    randomRow.className = "menu-item select-row tree-random-row";
-    randomRow.textContent = t("randomPickLabel");
-    randomRow.addEventListener("click", () => {
-      const { category, subcategory } = pickRandomCategoryAndSubcategory();
-      pick(category, subcategory);
-    });
-    container.appendChild(randomRow);
   }
 
-  // Difficulty is duplicated here (same LEVELS/buildRadioOptions as the main "⋮" menu) so picking
-  // a category and setting the difficulty for it can happen in one place — without this, Select
-  // mode meant closing the picker, going back into the menu for difficulty, then New Game again.
+  // Difficulty lives only here now (removed from the "⋮" menu — see AGENTS.md) so picking a
+  // category and setting the difficulty for it happens in one place before tapping Start.
   function renderCategorySelectDifficulty() {
     buildRadioOptions(
       document.getElementById("category-select-level-options"),
@@ -752,17 +739,76 @@
         wordLevel = value;
         localStorage.setItem(LEVEL_KEY, value);
         renderCategorySelectDifficulty();
-        renderMenus(); // keep the "⋮" menu's own difficulty radio in sync with this duplicate picker
       }
     );
   }
 
+  // The Random/Select switch, styled identically to the difficulty switch above (same
+  // buildRadioOptions()/select-level-options CSS). This is the popup's only view of categoryMode —
+  // the "⋮" menu doesn't have its own copy anymore (see renderMenus()), so there's no second picker
+  // to keep in sync here. Switching modes only changes what's shown below (the category tree vs. a
+  // "random will be picked" hint) — it doesn't touch pendingSelection or generate anything by itself.
+  function renderCategorySelectModeSwitch() {
+    buildRadioOptions(
+      document.getElementById("category-select-mode-options"),
+      CATEGORY_MODES.map((m) => ({ value: m, label: t(`categoryMode${capitalize(m)}`) })),
+      categoryMode,
+      (value) => {
+        if (value === categoryMode) return;
+        categoryMode = value;
+        localStorage.setItem(CATEGORY_MODE_KEY, value);
+        renderCategorySelectModeSwitch();
+        updateCategorySelectModeView();
+      }
+    );
+  }
+
+  // Shows the category tree in Select mode, or just a hint in Random mode (nothing to pick — Start
+  // rolls a fresh random category/subcategory itself, see category-select-start-btn's handler).
+  function updateCategorySelectModeView() {
+    const hintEl = document.getElementById("category-select-hint");
+    const listEl = document.getElementById("category-select-list");
+    if (categoryMode === "random") {
+      hintEl.textContent = t("selectCategoryRandomHint");
+      listEl.classList.add("hidden");
+    } else {
+      hintEl.textContent = t("selectCategoryHint");
+      listEl.classList.remove("hidden");
+    }
+  }
+
   function openCategorySelectModal() {
     document.getElementById("category-select-title").textContent = t("selectCategoryTitle");
-    document.getElementById("category-select-hint").textContent = t("selectCategoryHint");
+    // Fresh every time the popup opens: default the pending pick to whatever's currently loaded (so
+    // just changing difficulty and tapping Start, without touching the tree, regenerates the same
+    // topic), or a random fallback if nothing's loaded yet (first-ever launch).
+    pendingSelection = currentCategory
+      ? { category: currentCategory, subcategory: currentSubcategory }
+      : pickRandomCategoryAndSubcategory();
     renderCategorySelectDifficulty();
+    renderCategorySelectModeSwitch();
+    updateCategorySelectModeView();
     renderCategoryTree();
     categorySelectModal.classList.remove("hidden");
+  }
+
+  // The New Game popup's one and only action that actually generates a puzzle — everything else in
+  // the popup (difficulty, mode switch, tree taps) just edits pending state. Guarded by
+  // requestFreshGame() since this is the point where in-progress work would actually be discarded.
+  function startPuzzleFromModal() {
+    // Resolve *and* close the popup before the requestFreshGame() gate, not inside its callback —
+    // confirm-modal sits earlier in index.html than category-select-modal, so with equal .modal
+    // z-index the later-in-DOM popup paints on top of it. Leaving the popup open while confirm-modal
+    // tried to show underneath it was a real shipped bug: the confirm dialog was there but
+    // invisible/unclickable, so tapping Start with an in-progress puzzle looked like it silently did
+    // nothing. Closing the popup unconditionally first (it's already fully committed the pick via
+    // pendingSelection/categoryMode) means confirm-modal is the only modal left, guaranteed visible.
+    const { category, subcategory } =
+      categoryMode === "random" ? pickRandomCategoryAndSubcategory() : pendingSelection;
+    categorySelectModal.classList.add("hidden");
+    requestFreshGame(() => {
+      generateNewPuzzle(category, subcategory, wordLevel);
+    });
   }
 
   function isAdjacent(a, b) {
@@ -1531,15 +1577,13 @@
       }</strong>`;
       bestTimesEl.appendChild(row);
     });
-
-    renderHistoryList();
   }
 
   // Full per-finished-game detail, newest first — see "Game history" in AGENTS.md. A separate
   // render step from the summary/best-times blocks above since each entry needs several fields
   // (topic, level, date, time, words, bonus) rather than one label/value pair.
   function renderHistoryList() {
-    const historyEl = document.getElementById("stats-history");
+    const historyEl = document.getElementById("history-entries");
     const history = loadHistory();
     historyEl.innerHTML = "";
     if (history.length === 0) {
@@ -1628,35 +1672,11 @@
     });
   }
 
+  // Category mode and Difficulty both live only in the New Game popup now (see
+  // openCategorySelectModal()) — the "⋮" menu itself only has Language left as an actual setting
+  // to change, alongside the Stats/History actions. Don't re-add a Category or Difficulty section
+  // here; that's exactly the duplication this menu used to have and no longer needs.
   function renderMenus() {
-    // Category is no longer picked directly in the menu (28 categories × subcategories made that
-    // list unusable) — instead this just toggles what "New Game" does: "random" picks immediately,
-    // "select" opens the category-select modal. See startNewPuzzleFlow().
-    buildRadioOptions(
-      document.getElementById("category-options"),
-      CATEGORY_MODES.map((m) => ({ value: m, label: t(`categoryMode${capitalize(m)}`) })),
-      categoryMode,
-      (value) => {
-        if (value === categoryMode) return closeMenu();
-        categoryMode = value;
-        localStorage.setItem(CATEGORY_MODE_KEY, value);
-        renderMenus();
-        closeMenu();
-      }
-    );
-    buildRadioOptions(
-      document.getElementById("level-options"),
-      LEVELS.map((l) => ({ value: l, label: t(`level${capitalize(l)}`) })),
-      wordLevel,
-      (value) => {
-        if (value === wordLevel) return closeMenu();
-        requestFreshGame(() => {
-          generateNewPuzzle(currentCategory, currentSubcategory, value);
-          renderMenus();
-        });
-        closeMenu();
-      }
-    );
     buildRadioOptions(
       document.getElementById("lang-options"),
       SUPPORTED_LANGS.map((l) => ({ value: l, label: LANGUAGE_NAMES[l] })),
@@ -1705,8 +1725,22 @@
     statsModal.classList.add("hidden");
   });
 
+  document.getElementById("history-btn").addEventListener("click", () => {
+    renderHistoryList();
+    historyModal.classList.remove("hidden");
+    closeMenu();
+  });
+  document.getElementById("close-history-btn").addEventListener("click", () => {
+    historyModal.classList.add("hidden");
+  });
+
+  // New Game always just opens the popup now — it's non-destructive browsing, nothing is generated
+  // (and no in-progress puzzle discarded) until Start is tapped inside it. See startPuzzleFromModal().
   document.getElementById("new-game-btn").addEventListener("click", () => {
-    requestFreshGame(() => startNewPuzzleFlow());
+    startNewPuzzleFlow();
+  });
+  document.getElementById("category-select-start-btn").addEventListener("click", () => {
+    startPuzzleFromModal();
   });
 
   document.getElementById("confirm-ok-btn").addEventListener("click", () => {
@@ -1715,10 +1749,22 @@
     pendingConfirmAction = null;
     if (action) action();
   });
-  document.getElementById("confirm-cancel-btn").addEventListener("click", () => {
+  function cancelConfirm() {
     confirmModal.classList.add("hidden");
     pendingConfirmAction = null;
     renderMenus();
+  }
+  document.getElementById("confirm-cancel-btn").addEventListener("click", cancelConfirm);
+
+  // One shared "✕" close button per modal (top-right corner, see style.css) — each just hides its
+  // own .modal ancestor, except confirm-modal's, which needs cancelConfirm()'s extra bookkeeping
+  // (clearing pendingConfirmAction, re-syncing the menu) rather than a plain hide.
+  document.querySelectorAll(".modal-close-btn").forEach((btn) => {
+    const modal = btn.closest(".modal");
+    btn.addEventListener("click", () => {
+      if (modal === confirmModal) return cancelConfirm();
+      modal.classList.add("hidden");
+    });
   });
 
   async function init() {

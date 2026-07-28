@@ -553,6 +553,7 @@ main {
 }
 
 .modal-content {
+  position: relative;
   background: var(--bg);
   color: var(--fg);
   padding: 24px;
@@ -573,6 +574,7 @@ main {
 
 .modal-content h2 {
   margin-top: 0;
+  padding-right: 32px; /* room for .modal-close-btn pinned to the top-right corner */
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid var(--border);
@@ -630,8 +632,32 @@ main {
 }
 
 #close-help-btn,
-#close-stats-btn {
+#close-stats-btn,
+#close-history-btn {
   margin-top: 12px;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--fg);
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.modal-close-btn:hover {
+  background: var(--key-bg);
 }
 
 /* Consistent vertical rhythm for this modal: 16px between major sections (title / difficulty /
@@ -639,6 +665,12 @@ main {
    of those two numbers (or a divisor of the row gap) rather than an ad hoc value. */
 .select-modal-content {
   max-width: 480px;
+  /* A block parent's own non-zero padding blocks vertical margin collapsing at that edge — with
+     padding-bottom left at the base .modal-content 24px, .category-select-start-btn's negative
+     margin-bottom (meant to pull it flush against the popup's bottom edge) would only cancel space
+     *above* it, not escape this padding, leaving a visible gap below the button. Zeroing it here
+     hands that space entirely to the button's own margin/padding instead. */
+  padding-bottom: 0;
 }
 
 .select-modal-content h2 {
@@ -744,14 +776,31 @@ main {
   padding-top: 12px;
 }
 
-.tree-random-row {
-  margin-top: 12px;
-  padding-top: 16px;
-  border-top: 2px solid var(--border-strong);
-  border-radius: 0;
-  color: var(--selected);
-  text-align: center;
-  font-size: 0.9rem;
+.category-select-list.hidden {
+  display: none;
+}
+
+/* Sticks to the bottom of the popup's own scroll area (.modal-content is the scroll container, see
+   .modal-content's overflow-y: auto) while the category tree scrolls beneath it. Negative side
+   margins cancel .modal-content's own side padding so this bar spans edge-to-edge — that part of
+   the escape-parent-padding trick works fine, since horizontal margins aren't subject to margin
+   collapsing. The *bottom* edge instead relies on .select-modal-content zeroing its padding-bottom
+   (see there) rather than a negative margin, since a block parent's own non-zero padding blocks
+   vertical margin collapsing at that edge — a negative margin-bottom here would only have pulled
+   the button closer to the content above it, not escaped the parent's padding below it.
+   Deliberately its own color (--selected, the blue used for found-badge/selected cells), not
+   .btn-primary's green — every segmented switch above it (difficulty, category mode) already uses
+   that same green for its active pick, so a green Start button here would visually blend in as
+   "just another selected option" instead of reading as the one action that actually commits them. */
+.category-select-start-btn {
+  position: sticky;
+  bottom: 0;
+  width: calc(100% + 48px);
+  margin: 16px -24px 0;
+  padding: 14px 24px;
+  border-radius: 0 0 6px 6px;
+  background: var(--selected);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .stats-summary,
