@@ -1684,10 +1684,12 @@
       (value) => {
         if (value === currentLang) return closeMenu();
         requestFreshGame(async () => {
+          const targetLang = value;
           currentLang = value;
           localStorage.setItem(LANG_KEY, value);
           document.documentElement.lang = value;
           await loadWords();
+          if (currentLang !== targetLang) return;
           applyStaticTranslations();
           generateNewPuzzle(currentCategory, currentSubcategory, wordLevel);
           renderMenus();
